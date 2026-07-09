@@ -51,6 +51,17 @@ export const phasePointerSchema = z.object({
 })
 export type PhasePointer = z.infer<typeof phasePointerSchema>
 
+// Server-authoritative timer: /sessions/{sessionId}/timer. Written ONCE by the
+// host when a timed phase opens — endsAt is an absolute epoch-ms deadline the host
+// computes offset-corrected. Every device renders endsAt − (now + serverTimeOffset),
+// so no device trusts its local clock and none runs its own authoritative countdown.
+// phaseId guards against a stale timer from a previous phase.
+export const sessionTimerSchema = z.object({
+  phaseId: z.string(),
+  endsAt: z.number(), // epoch ms
+})
+export type SessionTimer = z.infer<typeof sessionTimerSchema>
+
 export const centralStepSchema = z.object({ step: z.number().int().nonnegative() })
 export const playerSharedStepSchema = z.object({ step: z.number().int().nonnegative() })
 
