@@ -93,6 +93,11 @@ export type Team = z.infer<typeof teamSchema>
 
 export const liveAggregatesSchema = z.object({
   answeredCount: z.record(z.string(), z.number().int().nonnegative()).optional(),
+  // Keyed by playerId — phases with teamMode "individual" (or absent) write here.
   scores: z.record(z.string(), z.number()).optional(),
+  // Keyed by teamId — phases with teamMode "team_leader_only"/"team_collaborative"
+  // write here instead of `scores`, so a team's score is attributed once, not
+  // duplicated per member.
+  teamScores: z.record(z.string(), z.number()).optional(),
 })
 export type LiveAggregates = z.infer<typeof liveAggregatesSchema>

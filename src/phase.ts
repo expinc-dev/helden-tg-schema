@@ -27,6 +27,15 @@ export type PhaseType = z.infer<typeof phaseTypeSchema>
 export const syncModeSchema = z.enum(['lockstep', 'self_paced'])
 export type SyncMode = z.infer<typeof syncModeSchema>
 
+// Team Mode: how this phase attributes progress/scoring when session.allowTeams is on.
+// individual = teams ignored, behaves exactly as today (default when field absent).
+// team_leader_only = one member (the team owner) acts, result attributed to the team.
+// team_collaborative = all members act, result is still attributed to the team (not each member).
+// Absent = "individual". Orthogonal to syncMode: a phase's syncMode still governs step
+// advancement; teamMode only governs whether results/scores key by playerId or teamId.
+export const teamModeSchema = z.enum(['individual', 'team_leader_only', 'team_collaborative'])
+export type TeamMode = z.infer<typeof teamModeSchema>
+
 export const roleViewSchema = z.object({
   enabled: z.boolean(),
   showTimer: z.boolean().optional(),
@@ -85,6 +94,7 @@ export const phaseSchema = z.object({
   type: phaseTypeSchema,
   title: z.string(),
   syncMode: syncModeSchema,
+  teamMode: teamModeSchema.optional(),
   roles: rolesSchema,
   timer: timerConfigSchema.optional(),
   scoring: scoringConfigSchema.optional(),

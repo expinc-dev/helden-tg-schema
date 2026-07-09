@@ -1,6 +1,6 @@
 {
   "name": "@helden-inc/tg-schema",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Training Game data contract: TypeScript types + Zod validators + SCHEMA_VERSION. Consumed by tg-runtime and tg-cms.",
   "type": "module",
   "main": "dist/index.js",
@@ -11,13 +11,15 @@
   "scripts": {
     "build": "tsc",
     "check": "tsc --noEmit",
-    "prepare": "tsc"
+    "prepare": "tsc",
+    "test": "tsc -p tsconfig.test.json && node dist-test/__examples__/phases.example.test.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "@types/node": "^24.13.2"
   },
   "dependencies": {
     "zod": "^4.4.3"

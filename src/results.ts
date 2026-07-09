@@ -17,3 +17,13 @@ export const playerResultSchema = z.object({
   phaseResults: z.record(z.string(), phaseResultSchema),
 })
 export type PlayerResult = z.infer<typeof playerResultSchema>
+
+// Team Mode counterpart, written instead of PlayerResult for phases whose teamMode
+// is "team_leader_only"/"team_collaborative" — same shape, keyed by teamId not playerId.
+// Firestore path: /sessions/{sessionId}/teamResults/{teamId}.
+export const teamResultSchema = z.object({
+  teamId: z.string(),
+  sessionId: z.string(),
+  phaseResults: z.record(z.string(), phaseResultSchema),
+})
+export type TeamResult = z.infer<typeof teamResultSchema>
