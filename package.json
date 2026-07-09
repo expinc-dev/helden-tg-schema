@@ -1,6 +1,6 @@
 {
   "name": "@helden-inc/tg-schema",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Training Game data contract: TypeScript types + Zod validators + SCHEMA_VERSION. Consumed by tg-runtime and tg-cms.",
   "type": "module",
   "main": "dist/index.js",
