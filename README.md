@@ -74,7 +74,7 @@ src/
 │  ├─ microlearning.ts  quiz.ts  video.ts  content-page.ts
 │  └─ codepiece.ts  codeinput.ts  presentation.ts  idle.ts  minigame.ts
 ├─ published.ts      # GameDraft (mutable), PublishedGame (immutable bundle)
-├─ rtdb.ts           # bentuk node live RTDB (session/presence/live/aggregates)
+├─ rtdb.ts           # bentuk node live RTDB (session/presence/live/aggregates/teams)
 ├─ results.ts        # PlayerResult (durable, Firestore)
 └─ index.ts          # re-export semua
 ```
@@ -84,7 +84,7 @@ Firestore = data authoring/durable (draft, arsip, hasil). RTDB = state sesi live
 ## SCHEMA_VERSION
 
 ```ts
-export const SCHEMA_VERSION = '1.0.0'   // src/version.ts
+export const SCHEMA_VERSION = '1.1.0'   // src/version.ts
 ```
 
 `SCHEMA_VERSION` adalah satu angka semver (`MAJOR.MINOR.PATCH`) yang menandai versi kontrak data. Angka ini **di-stamp** ke setiap game yang diterbitkan (`GameDraft.schemaVersion` dan `PublishedGame.schemaVersion` — lihat `src/published.ts`), sehingga setiap bundle membawa jejak "dibangun dengan schema versi berapa".
@@ -96,7 +96,7 @@ Naikkan saat bentuk data berubah, sesuai jenis perubahannya:
 | Naikkan | Kapan | Contoh |
 |---------|-------|--------|
 | **MAJOR** (`1.0.0` → `2.0.0`) | Perubahan **breaking**: hapus/rename field wajib, ubah tipe, atau ubah makna field | `Phase.title` dihapus; `syncMode` ganti nilai enum |
-| **MINOR** (`1.0.0` → `1.1.0`) | Tambahan **backward-compatible**: field opsional baru, tipe konten baru | Tambah `Phase.notes?: string`; tambah `PhaseType` baru |
+| **MINOR** (`1.0.0` → `1.1.0`) | Tambahan **backward-compatible**: field opsional baru, tipe konten baru | Team Mode (`1.1.0`): `SessionConfig.allowTeams?`, `PlayerPresence.teamId?`, node `Team` baru — semua opsional/aditif |
 | **PATCH** (`1.0.0` → `1.0.1`) | Perbaikan yang tak mengubah bentuk | Perketat aturan Zod (mis. `min`) tanpa merombak field |
 
 Aturan praktis: kalau data lama masih lolos `parse` dengan schema baru → MINOR/PATCH. Kalau data lama jadi invalid → MAJOR.
