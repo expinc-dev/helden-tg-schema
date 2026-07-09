@@ -21,6 +21,9 @@ export const sessionConfigSchema = z.object({
   // renders team-aware phases (codeinput) against per-team state. Absent/false =
   // the whole session is a single group (legacy behaviour).
   allowTeams: z.boolean().optional(),
+  // Optional cap on team roster size (counts memberIds incl. owner). Absent = no
+  // cap. Enforced by transaction on teams/{teamId}.memberIds, like maxPlayers.
+  maxMembers: z.number().int().positive().optional(),
 })
 export type SessionConfig = z.infer<typeof sessionConfigSchema>
 
@@ -74,12 +77,15 @@ export const codeInputLiveSchema = z.object({
 })
 export type CodeInputLive = z.infer<typeof codeInputLiveSchema>
 
-// Team Mode node: /sessions/{sessionId}/teams/{teamId}. Meta + per-team puzzle
-// state. Members are NOT stored here — derive from players where teamId matches.
-// codeinput is keyed by phaseId so one team can solve several codeinput phases.
+// Team Mode node: /sessions/{sessionId}/teams/{teamId}. FLAT membership relation:
+// every device stays an equal players/{playerId}; this node just points at the
+// members. memberIds is the authoritative roster (owner included) and the anchor
+// for the maxMembers transaction. player.teamId points back here. codeinput is
+// keyed by phaseId so one team can solve several codeinput phases.
 export const teamSchema = z.object({
-  name: z.string(),
-  createdBy: z.string(), // playerId of the creator
+  ownerPlayerId: z.string(),
+  memberIds: z.array(z.string()), // includes the owner; maxMembers checks its length
+  teamName: z.string().optional(),
   createdAt: z.number(),
   codeinput: z.record(z.string(), codeInputLiveSchema).optional(),
 })
