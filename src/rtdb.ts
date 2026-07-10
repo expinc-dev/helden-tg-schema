@@ -110,5 +110,10 @@ export const liveAggregatesSchema = z.object({
   // write here instead of `scores`, so a team's score is attributed once, not
   // duplicated per member.
   teamScores: z.record(z.string(), z.number()).optional(),
+  // Set-marker keeping `answeredCount` honest across duplicate submits and team
+  // modes: {qId → {keyId → true}} where keyId is playerId (individual) or teamId
+  // (team modes). The submit transaction bumps answeredCount ONLY when the
+  // marker was absent, so 3 devices in the same team = 1 count.
+  answeredBy: z.record(z.string(), z.record(z.string(), z.literal(true))).optional(),
 })
 export type LiveAggregates = z.infer<typeof liveAggregatesSchema>
