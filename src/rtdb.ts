@@ -10,6 +10,7 @@ export const sessionMetaSchema = z.object({
   hostUid: z.string(),
   status: sessionStatusSchema,
   createdAt: z.number(), // epoch ms
+  name: z.string().optional(),
 })
 export type SessionMeta = z.infer<typeof sessionMetaSchema>
 
