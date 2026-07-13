@@ -93,9 +93,17 @@ export type CodeInputLive = z.infer<typeof codeInputLiveSchema>
 // members. memberIds is the authoritative roster (owner included) and the anchor
 // for the maxMembers transaction. player.teamId points back here. codeinput is
 // keyed by phaseId so one team can solve several codeinput phases.
+//
+// memberIds is a MAP (playerId -> true), not an array — deliberately, so it can
+// be validated the same way playerOwners/answeredBy are in database.rules.json.
+// RTDB security rules have no numChildren()/.length/indexing for list-shaped
+// values (confirmed against the live Rules Playground while building this), so
+// an array here would mean "only the owner may touch this field at all" is the
+// best rules can do — a per-key map lets a NEW member self-join by writing only
+// their own key, exactly like answeredBy's per-key write-once pattern.
 export const teamSchema = z.object({
   ownerPlayerId: z.string(),
-  memberIds: z.array(z.string()), // includes the owner; maxMembers checks its length
+  memberIds: z.record(z.string(), z.literal(true)), // includes the owner
   teamName: z.string().optional(),
   createdAt: z.number(),
   codeinput: z.record(z.string(), codeInputLiveSchema).optional(),

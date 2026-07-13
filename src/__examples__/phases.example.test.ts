@@ -288,7 +288,7 @@ const phase7bCodeinput: Phase = {
 
 const exampleTeam: Team = {
   ownerPlayerId: 'p-1',
-  memberIds: ['p-1', 'p-2', 'p-3'],
+  memberIds: { 'p-1': true, 'p-2': true, 'p-3': true },
   teamName: 'Alpha Squad',
   createdAt: 1730000000000,
 }
