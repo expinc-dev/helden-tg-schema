@@ -52,6 +52,18 @@ export const phasePointerSchema = z.object({
 })
 export type PhasePointer = z.infer<typeof phasePointerSchema>
 
+// Video-phase playback state — sessions/{sessionId}/videoPlayback. Host-only
+// write via rules (same shape of guard as phasePointer/timer); readable by
+// central + host. Written by control.ts on video phase open (paused, 0) and
+// toggled by the host's Play/Pause button. Central listens and drives its
+// <video> or Vimeo iframe accordingly. updatedAt lets future work reason
+// about elapsed play time; today the pilot only reads `state`.
+export const videoPlaybackSchema = z.object({
+  state: z.enum(['playing', 'paused']),
+  updatedAt: z.number(),
+})
+export type VideoPlayback = z.infer<typeof videoPlaybackSchema>
+
 // Server-authoritative timer: /sessions/{sessionId}/timer. Written ONCE by the
 // host when a timed phase opens — endsAt is an absolute epoch-ms deadline the host
 // computes offset-corrected. Every device renders endsAt − (now + serverTimeOffset),
