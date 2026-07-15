@@ -103,5 +103,10 @@ export const phaseSchema = z.object({
   // modular flow to render a level-card image; runtime falls back to a
   // placeholder when absent. Author-time field, CMS will surface later.
   thumbnailMediaId: z.string().optional(),
+  // Author-declared time estimate for this phase, in minutes. Surfaced on the
+  // host picker level card so the trainer can pace the session. Purely
+  // informational — runtime does NOT enforce it (use `timer.seconds` +
+  // `autoAdvanceOnExpire` for hard timeouts).
+  durationMin: z.number().nonnegative().optional(),
 })
 export type Phase = z.infer<typeof phaseSchema>

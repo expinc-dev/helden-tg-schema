@@ -3,12 +3,21 @@ import { phaseSchema } from './phase.js'
 
 // Game-level flow. Per-phase syncMode + teamMode already exist; flowMode says
 // how the host progresses BETWEEN phases:
-//   sequential = linear next through phaseOrder (existing behaviour).
-//   modular  = level picker; host jumps to any phase, returns to picker between
-//              phases; picker resting state is represented by phasePointer
-//              pointing at phaseOrder[0], which must be an idle phase.
-// Default 'sequential' keeps pre-2.1 published bundles working unchanged.
-export const flowModeSchema = z.enum(['sequential', 'modular'])
+//   sequential           = linear next through phaseOrder (host clicks Next).
+//   modular-open         = level picker; host jumps to ANY non-played phase.
+//                          Played cards are marked "Sudah Dimainkan".
+//   modular-progressive  = level picker with progressive unlock. Only the
+//                          next-unplayed phase in phaseOrder is tappable; all
+//                          later phases show "Locked" until their predecessor
+//                          is played. Same picker anchor + End-level model as
+//                          modular-open; differs only in which cards are
+//                          tappable at a given moment.
+// Both modular modes require phaseOrder[0] to be an idle phase (picker anchor).
+// Default 'sequential' keeps bundles with no flowMode set working unchanged.
+//
+// v3 BREAKING RENAME: the pre-3.0 value 'modular' is gone. Bundles that used
+// it must migrate to 'modular-open' (identical semantics).
+export const flowModeSchema = z.enum(['sequential', 'modular-open', 'modular-progressive'])
 export type FlowMode = z.infer<typeof flowModeSchema>
 
 // Firestore Timestamp is not portable into this pure library. Use a Zod branding
