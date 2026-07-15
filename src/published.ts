@@ -3,12 +3,12 @@ import { phaseSchema } from './phase.js'
 
 // Game-level flow. Per-phase syncMode + teamMode already exist; flowMode says
 // how the host progresses BETWEEN phases:
-//   sequence = linear next through phaseOrder (existing behaviour).
+//   sequential = linear next through phaseOrder (existing behaviour).
 //   modular  = level picker; host jumps to any phase, returns to picker between
 //              phases; picker resting state is represented by phasePointer
 //              pointing at phaseOrder[0], which must be an idle phase.
-// Default 'sequence' keeps pre-2.1 published bundles working unchanged.
-export const flowModeSchema = z.enum(['sequence', 'modular'])
+// Default 'sequential' keeps pre-2.1 published bundles working unchanged.
+export const flowModeSchema = z.enum(['sequential', 'modular'])
 export type FlowMode = z.infer<typeof flowModeSchema>
 
 // Firestore Timestamp is not portable into this pure library. Use a Zod branding
@@ -28,7 +28,7 @@ export const gameDraftSchema = z.object({
   title: z.string(),
   schemaVersion: z.string(),
   phaseOrder: z.array(z.string()),
-  flowMode: flowModeSchema.default('sequence'),
+  flowMode: flowModeSchema.default('sequential'),
   defaults: z.object({
     maxPlayers: z.number().int().positive(),
     maxCentralScreens: z.number().int().positive(),
@@ -46,7 +46,7 @@ export const publishedGameSchema = z.object({
   schemaVersion: z.string(),
   title: z.string(),
   phaseOrder: z.array(z.string()),
-  flowMode: flowModeSchema.default('sequence'),
+  flowMode: flowModeSchema.default('sequential'),
   phases: z.record(z.string(), phaseSchema),
   publishedAt: timestampSchema,
   publishedBy: z.string(),
