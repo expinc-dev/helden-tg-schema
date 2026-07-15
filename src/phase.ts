@@ -99,5 +99,9 @@ export const phaseSchema = z.object({
   timer: timerConfigSchema.optional(),
   scoring: scoringConfigSchema.optional(),
   content: phaseContentSchema,
+  // Optional per-phase thumbnail (media id). Consumed by host page control in
+  // modular flow to render a level-card image; runtime falls back to a
+  // placeholder when absent. Author-time field, CMS will surface later.
+  thumbnailMediaId: z.string().optional(),
 })
 export type Phase = z.infer<typeof phaseSchema>
