@@ -61,6 +61,13 @@ export type PhasePointer = z.infer<typeof phasePointerSchema>
 export const videoPlaybackSchema = z.object({
   state: z.enum(['playing', 'paused']),
   updatedAt: z.number(),
+  // Host is the position authority: on every play/pause click, host writes
+  // its own <video>.currentTime here (seconds from video start). All devices
+  // seek to this value before applying state — this snaps central and host
+  // preview to the same frame on every state transition. Drift accumulates
+  // BETWEEN transitions but any pause/play resets everyone. Optional for
+  // backward compat; absent = "no explicit position, keep local time".
+  positionSec: z.number().nonnegative().optional(),
 })
 export type VideoPlayback = z.infer<typeof videoPlaybackSchema>
 
