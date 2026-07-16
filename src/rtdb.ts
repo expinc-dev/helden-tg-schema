@@ -82,7 +82,15 @@ export const sessionTimerSchema = z.object({
 })
 export type SessionTimer = z.infer<typeof sessionTimerSchema>
 
-export const centralStepSchema = z.object({ step: z.number().int().nonnegative() })
+export const centralStepSchema = z.object({
+  step: z.number().int().nonnegative(),
+  // Quiz stage machine: show (question visible) → answer (timer running, players
+  // can submit) → reveal (correct answer shown, scores computed). Optional so
+  // non-quiz lockstep phases (presentation) keep writing just { step }.
+  stage: z.enum(['show', 'answer', 'reveal']).optional(),
+  // Correct answer id, written on reveal so central/player can highlight it.
+  correctId: z.string().optional(),
+})
 export const playerSharedStepSchema = z.object({ step: z.number().int().nonnegative() })
 
 export const playerLiveStatusSchema = z.enum(['active', 'done', 'idle'])
@@ -143,5 +151,8 @@ export const liveAggregatesSchema = z.object({
   // (team modes). The submit transaction bumps answeredCount ONLY when the
   // marker was absent, so 3 devices in the same team = 1 count.
   answeredBy: z.record(z.string(), z.record(z.string(), z.literal(true))).optional(),
+  // Quiz answer distribution: { questionId → { optionId → count } }. Written by
+  // submitAnswer transaction so central/host can show live bar charts per option.
+  distribution: z.record(z.string(), z.record(z.string(), z.number().int().nonnegative())).optional(),
 })
 export type LiveAggregates = z.infer<typeof liveAggregatesSchema>
