@@ -7,6 +7,7 @@ import { microlearningContentSchema } from './content/microlearning.js'
 import { miniGameContentSchema } from './content/minigame.js'
 import { presentationContentSchema } from './content/presentation.js'
 import { quizContentSchema } from './content/quiz.js'
+import { reflectionContentSchema } from './content/reflection.js'
 import { videoContentSchema } from './content/video.js'
 
 export const phaseTypeSchema = z.enum([
@@ -19,6 +20,7 @@ export const phaseTypeSchema = z.enum([
   'presentation',
   'idle',
   'minigame',
+  'reflection',
 ])
 export type PhaseType = z.infer<typeof phaseTypeSchema>
 
@@ -86,6 +88,7 @@ export const phaseContentSchema = z.discriminatedUnion('type', [
   presentationContentSchema,
   idleContentSchema,
   miniGameContentSchema,
+  reflectionContentSchema,
 ])
 export type PhaseContent = z.infer<typeof phaseContentSchema>
 

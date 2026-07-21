@@ -58,7 +58,25 @@ const microPhase: Phase = {
   },
 }
 
-for (const p of [idlePhase, microPhase]) {
+const reflectionPhase: Phase = {
+  id: 'p-reflection',
+  type: 'reflection',
+  title: 'Reflection',
+  syncMode: 'self_paced',
+  scoring: { mode: 'participation', maxPoints: 10 },
+  roles: {
+    player: { enabled: true },
+    host: { monitor: ['answers'] },
+  },
+  content: {
+    type: 'reflection',
+    prompt: 'What is one thing you will do differently after this session?',
+    openText: { label: 'Your reflection', maxLen: 500 },
+    scale: { label: 'How confident do you feel?', min: 1, max: 5, labels: ['Not at all', 'Very'] },
+  },
+}
+
+for (const p of [idlePhase, microPhase, reflectionPhase]) {
   phaseSchema.parse(p)
   console.log(`OK ${p.id} (${p.type})`)
 }
