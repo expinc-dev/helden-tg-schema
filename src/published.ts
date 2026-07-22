@@ -33,7 +33,7 @@ export type SchemaTimestamp = z.infer<typeof timestampSchema>
 // GameDraft — mutable authoring doc (Firestore /games/{gameId}).
 export const gameDraftSchema = z.object({
   id: z.string(),
-  orgId: z.string(),
+  orgId: z.string(), // the owning Client's id — Client is the tenant/org boundary
   title: z.string(),
   schemaVersion: z.string(),
   phaseOrder: z.array(z.string()),
