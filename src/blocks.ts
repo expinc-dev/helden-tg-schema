@@ -23,6 +23,13 @@ export type Question =
       acceptedAnswers?: string[]
       caseSensitive?: boolean
     }
+  // Formalized out of tg-pilot's microlearning-only cast-at-the-boundary hack
+  // (OrderQuestion.tsx / ImageSequenceQuestion.tsx — `as unknown as Question`).
+  // Drag-to-reorder a fixed list.
+  | { qType: 'order'; prompt: Block[]; items: { id: string; label: string }[] }
+  // Drag pool images into numbered slots (slots start empty, unlike 'order'
+  // which reorders a pre-placed list).
+  | { qType: 'image_sequence'; prompt: Block[]; images: { id: string; mediaId: string }[] }
 
 export type Block =
   | { kind: 'text'; markdown: string }
@@ -68,6 +75,16 @@ export const questionSchema: z.ZodType<Question> = z.lazy(() =>
       prompt: z.array(blockSchema),
       acceptedAnswers: z.array(z.string()).optional(),
       caseSensitive: z.boolean().optional(),
+    }),
+    z.object({
+      qType: z.literal('order'),
+      prompt: z.array(blockSchema),
+      items: z.array(z.object({ id: z.string(), label: z.string() })),
+    }),
+    z.object({
+      qType: z.literal('image_sequence'),
+      prompt: z.array(blockSchema),
+      images: z.array(z.object({ id: z.string(), mediaId: z.string() })),
     }),
   ]),
 )

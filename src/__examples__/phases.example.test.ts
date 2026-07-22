@@ -123,6 +123,46 @@ const phase2WhatIsLlm: Phase = {
           },
         ],
       },
+      // 'order' and 'image_sequence' — microlearning-only Question variants,
+      // formalized here out of tg-pilot's cast-at-the-boundary hack (see
+      // OrderQuestion.tsx / ImageSequenceQuestion.tsx in that repo).
+      {
+        id: 'm4',
+        gate: { requireAnswered: true },
+        blocks: [
+          {
+            kind: 'question',
+            question: {
+              qType: 'order',
+              prompt: [{ kind: 'text', markdown: 'Urutkan langkah menulis prompt yang baik.' }],
+              items: [
+                { id: 'i1', label: 'Set the goal & context' },
+                { id: 'i2', label: 'Give an example of the desired format' },
+                { id: 'i3', label: 'Ask the AI to generate a draft' },
+                { id: 'i4', label: 'Review & refine the result' },
+              ],
+            },
+          },
+        ],
+      },
+      {
+        id: 'm5',
+        gate: { requireAnswered: true },
+        blocks: [
+          {
+            kind: 'question',
+            question: {
+              qType: 'image_sequence',
+              prompt: [{ kind: 'text', markdown: 'Seret gambar untuk membuat rangkaian cerita.' }],
+              images: [
+                { id: 'g1', mediaId: 'media-sequence-1' },
+                { id: 'g2', mediaId: 'media-sequence-2' },
+                { id: 'g3', mediaId: 'media-sequence-3' },
+              ],
+            },
+          },
+        ],
+      },
     ],
   },
 }
