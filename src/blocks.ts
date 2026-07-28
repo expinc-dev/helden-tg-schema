@@ -52,6 +52,12 @@ export type Block =
       autoplay?: boolean
     }
   | { kind: 'question'; question: Question }
+  // Cosmetic countdown, client-local (no server authority, no advance-gating) —
+  // distinct from phase.timer, which is server-driven and can auto-advance.
+  | { kind: 'timer'; seconds: number; direction: 'up' | 'down' }
+  // Short badge-style title. Renders overlaid on a slide's hero image when one
+  // exists (see tg-pilot's StepBody); falls back to plain styled text otherwise.
+  | { kind: 'heading'; text: string }
 
 export const choiceSchema: z.ZodType<Choice> = z.object({
   id: z.string(),
@@ -121,5 +127,11 @@ export const blockSchema: z.ZodType<Block> = z.lazy(() =>
       autoplay: z.boolean().optional(),
     }),
     z.object({ kind: z.literal('question'), question: questionSchema }),
+    z.object({
+      kind: z.literal('timer'),
+      seconds: z.number().int().positive(),
+      direction: z.enum(['up', 'down']),
+    }),
+    z.object({ kind: z.literal('heading'), text: z.string() }),
   ]),
 )
