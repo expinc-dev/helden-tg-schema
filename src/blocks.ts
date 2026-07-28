@@ -33,8 +33,24 @@ export type Question =
 
 export type Block =
   | { kind: 'text'; markdown: string }
-  | { kind: 'image'; mediaId: string; caption?: string }
-  | { kind: 'video'; mediaId: string; autoplay?: boolean }
+  | {
+      kind: 'image'
+      mediaId: string
+      // Resolved public URL, copied from the picked MediaDoc at pick-time.
+      // Runtime renders this directly; mediaId is kept for CMS bookkeeping only.
+      url?: string
+      caption?: string
+    }
+  | {
+      kind: 'video'
+      mediaId: string
+      // Same resolved-at-pick-time pattern as image.url. Accepts a CDN file
+      // URL from an uploaded MediaDoc, or a pasted Vimeo/YouTube link — the
+      // runtime URL-sniffs the provider (detectProvider in tg-pilot), same
+      // convention as content/video.ts's VideoContent.videoUrl.
+      url?: string
+      autoplay?: boolean
+    }
   | { kind: 'question'; question: Question }
 
 export const choiceSchema: z.ZodType<Choice> = z.object({
@@ -95,11 +111,13 @@ export const blockSchema: z.ZodType<Block> = z.lazy(() =>
     z.object({
       kind: z.literal('image'),
       mediaId: z.string(),
+      url: z.string().optional(),
       caption: z.string().optional(),
     }),
     z.object({
       kind: z.literal('video'),
       mediaId: z.string(),
+      url: z.string().optional(),
       autoplay: z.boolean().optional(),
     }),
     z.object({ kind: z.literal('question'), question: questionSchema }),
