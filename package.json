@@ -1,6 +1,6 @@
 {
-  "name": "@helden-inc/tg-schema",
-  "version": "2.1.1",
+  "name": "@gopla/tg-schema",
+  "version": "3.5.0",
   "description": "Training Game data contract: TypeScript types + Zod validators + SCHEMA_VERSION. Consumed by tg-runtime and tg-cms.",
   "type": "module",
   "main": "dist/index.js",
@@ -8,6 +8,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc",
     "check": "tsc --noEmit",
