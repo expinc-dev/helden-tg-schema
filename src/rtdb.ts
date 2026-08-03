@@ -112,8 +112,22 @@ export const codeInputLiveSchema = z.object({
   attempts: z.number().int().nonnegative(),
   solved: z.boolean(),
   solvedAt: z.number().optional(),
+  lastGuessNormalized: z.string().optional(),
 })
 export type CodeInputLive = z.infer<typeof codeInputLiveSchema>
+
+// Frozen at phase-open (control.ts#openPhaseFragmentOrder) — CodePiece's
+// distribution + each player's "piece N of M" are a pure function of this
+// list plus the phase's own content, so reconnect never reshuffles who has
+// which fragment. Ordering basis: joinedAt ascending (stable, already
+// tracked on every player — no new field needed to define it).
+// individual mode -> sessions/{sessionId}/codepiece/{phaseId}/fragmentOrder
+// team modes      -> sessions/{sessionId}/teams/{teamId}/codepiece/{phaseId}/fragmentOrder
+export const fragmentOrderSchema = z.array(z.string())
+export type FragmentOrder = z.infer<typeof fragmentOrderSchema>
+
+export const codePieceLiveSchema = z.object({ fragmentOrder: fragmentOrderSchema })
+export type CodePieceLive = z.infer<typeof codePieceLiveSchema>
 
 // Team Mode node: /sessions/{sessionId}/teams/{teamId}. FLAT membership relation:
 // every device stays an equal players/{playerId}; this node just points at the
@@ -134,6 +148,9 @@ export const teamSchema = z.object({
   teamName: z.string().optional(),
   createdAt: z.number(),
   codeinput: z.record(z.string(), codeInputLiveSchema).optional(),
+  // Keyed by phaseId, same reasoning as `codeinput` above — a team can play
+  // several codepiece phases across a session.
+  codepiece: z.record(z.string(), codePieceLiveSchema).optional(),
 })
 export type Team = z.infer<typeof teamSchema>
 
