@@ -84,9 +84,11 @@ export type SessionTimer = z.infer<typeof sessionTimerSchema>
 
 export const centralStepSchema = z.object({
   step: z.number().int().nonnegative(),
-  // Quiz 4-stage machine: preparation → reading → answering → reveal.
+  // Quiz 3-stage machine: answering → reveal → leaderboard. Question and
+  // answer choices show together from the start (no separate prep/reading
+  // step); leaderboard is its own stage so it can't show mid-reveal.
   // Optional so non-quiz lockstep phases (presentation) keep writing just { step }.
-  stage: z.enum(['preparation', 'reading', 'answering', 'reveal']).optional(),
+  stage: z.enum(['answering', 'reveal', 'leaderboard']).optional(),
   // Correct answer id, written on reveal so central/player can highlight it.
   correctId: z.string().optional(),
 })
