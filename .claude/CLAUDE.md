@@ -1,6 +1,6 @@
 # CLAUDE.md — @helden-inc/tg-schema
 
-Konteks kerja untuk AI agent di repo **tg-schema**. Instruksional & ringkas. Penjelasan untuk manusia ada di [`README.md`](README.md); desain/alasan mendalam di [`../BLUEPRINT_schema.md`](../BLUEPRINT_schema.md).
+Konteks kerja untuk AI agent di repo **tg-schema**. Instruksional & ringkas. Penjelasan untuk manusia ada di [`../README.md`](../README.md); desain/alasan mendalam di [`../../BLUEPRINT_schema.md`](../../BLUEPRINT_schema.md).
 
 ## Apa repo ini
 
@@ -47,7 +47,7 @@ Semver. Aturan praktis: **data lama masih lolos `parse` dengan schema baru → M
 - **MINOR** — additive backward-compatible: field opsional baru, `PhaseType` baru. (`1.0.x` → `1.1.0`)
 - **PATCH** — perketat/perbaiki aturan Zod tanpa mengubah bentuk. (`1.0.0` → `1.0.1`)
 
-Konsumen: CMS men-*stamp* `SCHEMA_VERSION` ke `PublishedGame` (immutable — publish ulang = `gameVersionId` baru); runtime `parse` bundle lalu cek MAJOR sebelum render. Detail + contoh kode di [README §SCHEMA_VERSION](README.md).
+Konsumen: CMS men-*stamp* `SCHEMA_VERSION` ke `PublishedGame` (immutable — publish ulang = `gameVersionId` baru); runtime `parse` bundle lalu cek MAJOR sebelum render. Detail + contoh kode di [README §SCHEMA_VERSION](../README.md).
 
 ## Definisi Selesai
 
