@@ -1,8 +1,38 @@
-# CLAUDE.md — @helden-inc/tg-schema
+# Project Context
 
-Konteks kerja untuk AI agent di repo **tg-schema**. Instruksional & ringkas. Penjelasan untuk manusia ada di [`../README.md`](../README.md); desain/alasan mendalam di [`../../BLUEPRINT_schema.md`](../../BLUEPRINT_schema.md).
+Repo **tg-schema**, satu dari tiga subproject di monorepo Helden Training Game (peta lintas-repo: [root CLAUDE.md](../../.claude/CLAUDE.md)). Paket TypeScript murni — tipe + validator Zod + `SCHEMA_VERSION`, kontrak data tunggal yang dipakai `helden-tg-pilot` (runtime) dan `helden-tg-cms` (authoring) sebagai `@helden-inc/tg-schema`. Kode ada di `src/`, lihat struktur di bawah.
+
+# AI Assistant Rules
+
+Kamu adalah AI Assistant tingkat lanjut. Patuhi aturan berikut saat membantu saya di project ini:
+
+1. **SELALU GUNAKAN GRAPHIFY SEBELUM MENJAWAB/NGODING:**
+   Jangan menebak arsitektur atau dependensi kode. Gunakan skill/tool Graphify (`/graphify`, `graphify path`, atau `graphify explain`) untuk baca `graphify-out/graph.json` dan `GRAPH_REPORT.md` di repo ini sebelum eksplorasi atau perubahan apa pun. Kalau graph dirasa kurang jelas atau stale, jalankan `/graphify . --update` di repo ini, atau `../graphify-refresh.sh` dari root buat refresh ketiga repo sekaligus (**bukan** `npm run myg` — script itu gak ada di monorepo ini).
+
+2. **PROPOSE PLAN & TUNGGU PERSETUJUAN SEBELUM EKSEKUSI (WAJIB):**
+   Karena instruksi saya terkadang abstrak, JANGAN PERNAH langsung mengubah, membuat, atau menghapus file kode. Kalau perlu, pakai command `/grill-with-docs` buat lebih jelas mengambil keputusan.
+   - Langkah 1: Buat ringkasan singkat tentang apa yang kamu pahami dari permintaan saya.
+   - Langkah 2: Buat daftar langkah-langkah (Action Plan) yang berisi file apa saja yang akan dimodifikasi dan logika apa yang akan diubah.
+   - Langkah 3: BERHENTI. Tanya saya apakah rencana tersebut sudah benar.
+   - Langkah 4: Baru eksekusi penulisan kode HANYA SETELAH saya memberikan persetujuan (misalnya saya jawab "ok", "lanjut", atau "yes").
+
+3. **UPDATE GRAPH SAAT DIPERLUKAN:**
+   Jika kita baru saja melakukan *refactoring* atau penambahan file/komponen dalam jumlah banyak, kamu bisa meminta saya untuk menjalankan `../graphify-refresh.sh` di terminal, atau kamu bisa menjalankannya sendiri (jika memiliki akses eksekusi terminal) untuk merefresh knowledge graph.
+
+4. **IMPACT ANALYSIS:**
+   Repo ini **adalah** sumber kebenaran yang dipakai ulang oleh dua repo lain — setiap perubahan skema di sini berpotensi merembet ke `helden-tg-pilot` **dan** `helden-tg-cms` sekaligus. Sebelum ubah bentuk data yang sudah ada, cek dulu siapa saja konsumennya (biasanya lewat `graphify path`), dan naikkan `SCHEMA_VERSION` sesuai tingkat breaking-nya (lihat "Cara update versi" di bawah).
+
+5. **STRICT STOP CONDITION (NO TESTING):**
+   Tugasmu HANYA menulis dan memodifikasi kode. Setelah kamu selesai mengubah file, kamu WAJIB langsung berhenti dan menunggu instruksi saya.
+   - SAYA yang bertanggung jawab menjalankan `npm run build`/`npm run check` kalau perlu dilihat manual.
+   - JANGAN PERNAH menjalankan perintah terminal untuk preview, server, atau membuka browser. Berhenti bekerja segera setelah kode disimpan! (`npm run build`/`npm run check` dari Definisi Selesai di bawah tetap boleh dijalankan sebagai verifikasi typecheck, itu bukan "preview/server/browser".)
+
+6. **UPDATE GRAPH**
+   Setelah selesai dengan tugasmu, konfirmasi dulu untuk update graph via `../graphify-refresh.sh`.
 
 ## Apa repo ini
+
+Penjelasan untuk manusia ada di [`../README.md`](../README.md); desain/alasan mendalam di [`../../BLUEPRINT_schema.md`](../../BLUEPRINT_schema.md).
 
 Kontrak data **tunggal** untuk seluruh Training Game: tipe TypeScript + validator Zod + `SCHEMA_VERSION`. Dikonsumsi `tg-runtime` (game) & `tg-cms` (authoring) sebagai paket `@helden-inc/tg-schema`.
 
