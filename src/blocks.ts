@@ -6,6 +6,11 @@ import { z } from 'zod'
 
 export type Choice = { id: string; label: string; mediaId?: string }
 
+// Retry-scoring for qr_scan/pattern_scan — deliberately local to these two
+// qTypes, not the phase-level ScoringConfig (which has no per-attempt-penalty
+// concept and is one config per whole phase, not per question).
+export type ScanPoints = { correct: number; wrongPenalty: number }
+
 export type Question =
   | { qType: 'single_choice'; prompt: Block[]; options: Choice[]; correctId?: string }
   | { qType: 'multi_choice'; prompt: Block[]; options: Choice[]; correctIds?: string[] }
@@ -30,6 +35,20 @@ export type Question =
   // Drag pool images into numbered slots (slots start empty, unlike 'order'
   // which reorders a pre-placed list).
   | { qType: 'image_sequence'; prompt: Block[]; images: { id: string; mediaId: string }[] }
+  // Player assembles a physical puzzle, then scans the result. referenceMediaId
+  // is shown to the player as "what to build"; expectedValue is the QR payload
+  // to match (author-typed, decoded QR images aren't auto-read at author time).
+  | {
+      qType: 'qr_scan'
+      prompt: Block[]
+      referenceMediaId: string
+      expectedValue: string
+      points?: ScanPoints
+    }
+  // Same physical-scan flow as qr_scan, but the "answer" is the reference image
+  // itself — runtime hashes targetMediaId and compares it to the scanned frame,
+  // no separately-authored expected value.
+  | { qType: 'pattern_scan'; prompt: Block[]; targetMediaId: string; points?: ScanPoints }
 
 export type Block =
   | { kind: 'text'; markdown: string }
@@ -63,6 +82,11 @@ export const choiceSchema: z.ZodType<Choice> = z.object({
   id: z.string(),
   label: z.string(),
   mediaId: z.string().optional(),
+})
+
+export const scanPointsSchema: z.ZodType<ScanPoints> = z.object({
+  correct: z.number().nonnegative(),
+  wrongPenalty: z.number().nonnegative(),
 })
 
 export const questionSchema: z.ZodType<Question> = z.lazy(() =>
@@ -107,6 +131,19 @@ export const questionSchema: z.ZodType<Question> = z.lazy(() =>
       qType: z.literal('image_sequence'),
       prompt: z.array(blockSchema),
       images: z.array(z.object({ id: z.string(), mediaId: z.string() })),
+    }),
+    z.object({
+      qType: z.literal('qr_scan'),
+      prompt: z.array(blockSchema),
+      referenceMediaId: z.string(),
+      expectedValue: z.string(),
+      points: scanPointsSchema.optional(),
+    }),
+    z.object({
+      qType: z.literal('pattern_scan'),
+      prompt: z.array(blockSchema),
+      targetMediaId: z.string(),
+      points: scanPointsSchema.optional(),
     }),
   ]),
 )
