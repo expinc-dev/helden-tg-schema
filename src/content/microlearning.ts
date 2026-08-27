@@ -1,24 +1,25 @@
 import { z } from 'zod'
 import { blockSchema } from '../blocks.js'
 
-// MicroStep may have subSteps → z.lazy() self-reference.
-export type MicroStep = {
-  id: string
-  blocks: import('../blocks.js').Block[]
-  subSteps?: MicroStep[]
-  gate?: { requireAnswered?: boolean }
-}
-
-export const microStepSchema: z.ZodType<MicroStep> = z.object({
+// One step = one block, always. Multi-block steps were collapsed into
+// separate steps so the player advances one screen at a time with an explicit
+// Next; `thumbnailMediaId`/`thumbnailUrl` power the StepPicker card and are
+// authored independently of the block's own image (a text/question step still
+// gets a card thumbnail). Same mediaId+url pattern as Block.image, resolved at
+// author pick-time — runtime reads url from the bundle, never Firestore.
+export const microStepSchema = z.object({
   id: z.string(),
-  blocks: z.array(blockSchema),
-  subSteps: z.lazy(() => z.array(microStepSchema)).optional(),
+  block: blockSchema,
+  thumbnailMediaId: z.string().optional(),
+  thumbnailUrl: z.string().optional(),
+  title: z.string().optional(),
   gate: z
     .object({
       requireAnswered: z.boolean().optional(),
     })
     .optional(),
 })
+export type MicroStep = z.infer<typeof microStepSchema>
 
 export const microlearningContentSchema = z.object({
   type: z.literal('microlearning'),

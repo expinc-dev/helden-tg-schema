@@ -85,83 +85,82 @@ const phase2WhatIsLlm: Phase = {
     steps: [
       {
         id: 'm1',
-        blocks: [
-          {
-            kind: 'text',
-            markdown:
-              '**LLM** (Large Language Model) memprediksi kata berikutnya berdasar pola dari data teks yang sangat besar.',
-          },
-          { kind: 'image', mediaId: 'media-next-token' },
-        ],
+        title: 'Apa itu LLM',
+        block: {
+          kind: 'text',
+          markdown:
+            '**LLM** (Large Language Model) memprediksi kata berikutnya berdasar pola dari data teks yang sangat besar.',
+        },
+      },
+      {
+        id: 'm1b',
+        title: 'Ilustrasi next-token',
+        block: { kind: 'image', mediaId: 'media-next-token' },
       },
       {
         id: 'm2',
-        blocks: [
-          {
-            kind: 'text',
-            markdown:
-              'Ia **tidak mengambil dari database fakta** — ia menghasilkan teks yang paling mungkin. Karena itu bisa terdengar meyakinkan tapi salah (*halusinasi*).',
-          },
-        ],
+        title: 'Halusinasi',
+        block: {
+          kind: 'text',
+          markdown:
+            'Ia **tidak mengambil dari database fakta** — ia menghasilkan teks yang paling mungkin. Karena itu bisa terdengar meyakinkan tapi salah (*halusinasi*).',
+        },
       },
       {
         id: 'm3',
+        title: 'Cek pemahaman',
         gate: { requireAnswered: true },
-        blocks: [
-          {
-            kind: 'question',
-            question: {
-              qType: 'single_choice',
-              prompt: [{ kind: 'text', markdown: 'Kenapa AI bisa memberi jawaban salah yang terdengar yakin?' }],
-              options: [
-                { id: 'a', label: 'Ia memprediksi teks yang mungkin, bukan mengambil fakta' },
-                { id: 'b', label: 'Database-nya sedang error' },
-                { id: 'c', label: 'Ia sengaja berbohong' },
-              ],
-              correctId: 'a',
-            },
+        block: {
+          kind: 'question',
+          question: {
+            qType: 'single_choice',
+            prompt: [{ kind: 'text', markdown: 'Kenapa AI bisa memberi jawaban salah yang terdengar yakin?' }],
+            options: [
+              { id: 'a', label: 'Ia memprediksi teks yang mungkin, bukan mengambil fakta' },
+              { id: 'b', label: 'Database-nya sedang error' },
+              { id: 'c', label: 'Ia sengaja berbohong' },
+            ],
+            correctId: 'a',
           },
-        ],
+        },
       },
       // 'order' and 'image_sequence' — microlearning-only Question variants,
       // formalized here out of tg-pilot's cast-at-the-boundary hack (see
       // OrderQuestion.tsx / ImageSequenceQuestion.tsx in that repo).
       {
         id: 'm4',
+        title: 'Urutkan langkah',
         gate: { requireAnswered: true },
-        blocks: [
-          {
-            kind: 'question',
-            question: {
-              qType: 'order',
-              prompt: [{ kind: 'text', markdown: 'Urutkan langkah menulis prompt yang baik.' }],
-              items: [
-                { id: 'i1', label: 'Set the goal & context' },
-                { id: 'i2', label: 'Give an example of the desired format' },
-                { id: 'i3', label: 'Ask the AI to generate a draft' },
-                { id: 'i4', label: 'Review & refine the result' },
-              ],
-            },
+        block: {
+          kind: 'question',
+          question: {
+            qType: 'order',
+            prompt: [{ kind: 'text', markdown: 'Urutkan langkah menulis prompt yang baik.' }],
+            items: [
+              { id: 'i1', label: 'Set the goal & context' },
+              { id: 'i2', label: 'Give an example of the desired format' },
+              { id: 'i3', label: 'Ask the AI to generate a draft' },
+              { id: 'i4', label: 'Review & refine the result' },
+            ],
           },
-        ],
+        },
       },
       {
         id: 'm5',
+        title: 'Rangkai cerita',
         gate: { requireAnswered: true },
-        blocks: [
-          {
-            kind: 'question',
-            question: {
-              qType: 'image_sequence',
-              prompt: [{ kind: 'text', markdown: 'Seret gambar untuk membuat rangkaian cerita.' }],
-              images: [
-                { id: 'g1', mediaId: 'media-sequence-1' },
-                { id: 'g2', mediaId: 'media-sequence-2' },
-                { id: 'g3', mediaId: 'media-sequence-3' },
-              ],
-            },
+        block: {
+          kind: 'question',
+          question: {
+            qType: 'image_sequence',
+            prompt: [{ kind: 'text', markdown: 'Seret gambar untuk membuat rangkaian cerita.' }],
+            images: [
+              { id: 'g1', mediaId: 'media-sequence-1' },
+              { id: 'g2', mediaId: 'media-sequence-2' },
+              { id: 'g3', mediaId: 'media-sequence-3' },
+            ],
           },
-        ],
+        },
       },
     ],
   },
