@@ -38,17 +38,27 @@ export type Question =
   // Player assembles a physical puzzle, then scans the result. referenceMediaId
   // is shown to the player as "what to build"; expectedValue is the QR payload
   // to match (author-typed, decoded QR images aren't auto-read at author time).
+  // referenceUrl is the resolved public URL, copied from the picked MediaDoc
+  // at pick-time — same pattern as Block.image.url, since runtime never reads
+  // Firestore mid-session and can only render what's inline in the bundle.
   | {
       qType: 'qr_scan'
       prompt: Block[]
       referenceMediaId: string
+      referenceUrl?: string
       expectedValue: string
       points?: ScanPoints
     }
   // Same physical-scan flow as qr_scan, but the "answer" is the reference image
-  // itself — runtime hashes targetMediaId and compares it to the scanned frame,
-  // no separately-authored expected value.
-  | { qType: 'pattern_scan'; prompt: Block[]; targetMediaId: string; points?: ScanPoints }
+  // itself — runtime hashes the targetUrl image and compares it to the scanned
+  // frame, no separately-authored expected value.
+  | {
+      qType: 'pattern_scan'
+      prompt: Block[]
+      targetMediaId: string
+      targetUrl?: string
+      points?: ScanPoints
+    }
 
 export type Block =
   | { kind: 'text'; markdown: string }
@@ -140,6 +150,7 @@ export const questionSchema: z.ZodType<Question> = z.lazy(() =>
       qType: z.literal('qr_scan'),
       prompt: z.array(blockSchema),
       referenceMediaId: z.string(),
+      referenceUrl: z.string().optional(),
       expectedValue: z.string(),
       points: scanPointsSchema.optional(),
     }),
@@ -147,6 +158,7 @@ export const questionSchema: z.ZodType<Question> = z.lazy(() =>
       qType: z.literal('pattern_scan'),
       prompt: z.array(blockSchema),
       targetMediaId: z.string(),
+      targetUrl: z.string().optional(),
       points: scanPointsSchema.optional(),
     }),
   ]),
