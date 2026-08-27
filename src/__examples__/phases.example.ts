@@ -35,23 +35,25 @@ const microPhase: Phase = {
       {
         id: 's1',
         title: 'Welcome',
-        block: { kind: 'text', markdown: '# Welcome' },
+        blocks: [{ kind: 'text', markdown: '# Welcome' }],
       },
       {
         id: 's2',
         title: 'Ready check',
-        block: {
-          kind: 'question',
-          question: {
-            qType: 'single_choice',
-            prompt: [{ kind: 'text', markdown: 'Ready?' }],
-            options: [
-              { id: 'a', label: 'Yes' },
-              { id: 'b', label: 'No' },
-            ],
-            correctId: 'a',
+        blocks: [
+          {
+            kind: 'question',
+            question: {
+              qType: 'single_choice',
+              prompt: [{ kind: 'text', markdown: 'Ready?' }],
+              options: [
+                { id: 'a', label: 'Yes' },
+                { id: 'b', label: 'No' },
+              ],
+              correctId: 'a',
+            },
           },
-        },
+        ],
         gate: { requireAnswered: true },
       },
     ],

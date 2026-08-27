@@ -1,15 +1,17 @@
 import { z } from 'zod'
 import { blockSchema } from '../blocks.js'
 
-// One step = one block, always. Multi-block steps were collapsed into
-// separate steps so the player advances one screen at a time with an explicit
-// Next; `thumbnailMediaId`/`thumbnailUrl` power the StepPicker card and are
-// authored independently of the block's own image (a text/question step still
-// gets a card thumbnail). Same mediaId+url pattern as Block.image, resolved at
-// author pick-time — runtime reads url from the bundle, never Firestore.
+// A step is a sequence of blocks paginated one-per-screen at runtime — the
+// player taps Next to walk through blocks[0..n-1] inside the step, then Next
+// again at the last block advances to the next step. `thumbnailMediaId`/
+// `thumbnailUrl` power the StepPicker card and are authored independently of
+// any image block inside the step (so a text/question-only step still has
+// artwork on the level card). Same mediaId+url pattern as Block.image,
+// resolved at author pick-time — runtime reads url from the bundle, never
+// Firestore.
 export const microStepSchema = z.object({
   id: z.string(),
-  block: blockSchema,
+  blocks: z.array(blockSchema),
   thumbnailMediaId: z.string().optional(),
   thumbnailUrl: z.string().optional(),
   title: z.string().optional(),
