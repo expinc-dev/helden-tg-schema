@@ -58,6 +58,10 @@ export type Block =
       // Resolved public URL, copied from the picked MediaDoc at pick-time.
       // Runtime renders this directly; mediaId is kept for CMS bookkeeping only.
       url?: string
+      // Short bold headline shown below the image (e.g. "Cari & Susun Balok").
+      // Distinct from caption: title is a heading-style label, caption is a
+      // small secondary note — both optional, both can be present at once.
+      title?: string
       caption?: string
     }
   | {
@@ -155,6 +159,7 @@ export const blockSchema: z.ZodType<Block> = z.lazy(() =>
       kind: z.literal('image'),
       mediaId: z.string(),
       url: z.string().optional(),
+      title: z.string().optional(),
       caption: z.string().optional(),
     }),
     z.object({
