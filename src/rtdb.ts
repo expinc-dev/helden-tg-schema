@@ -14,6 +14,15 @@ export const sessionMetaSchema = z.object({
 })
 export type SessionMeta = z.infer<typeof sessionMetaSchema>
 
+// /stats/players — cumulative count of player first-joins in THIS RTDB. Under the
+// 1-deploy-per-client model each client owns its RTDB, so this is that client's
+// running player total. Bumped by presence.joinPresence via a +1 transaction and
+// read by the CMS dashboard (Players card). Top-level node, sibling of /sessions.
+export const rtdbStatsSchema = z.object({
+  players: z.number().int().nonnegative().optional(),
+})
+export type RtdbStats = z.infer<typeof rtdbStatsSchema>
+
 export const sessionConfigSchema = z.object({
   maxPlayers: z.number().int().positive(),
   maxCentralScreens: z.number().int().positive(),
