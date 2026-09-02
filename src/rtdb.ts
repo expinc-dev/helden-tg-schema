@@ -23,6 +23,16 @@ export const rtdbStatsSchema = z.object({
 })
 export type RtdbStats = z.infer<typeof rtdbStatsSchema>
 
+// /events/{eventId}/sessionIds — write-once index of every session created for
+// this event. RTDB rules can grant read access to a node's children, but there
+// is no way to grant "list the keys under sessions/" without exposing the
+// sessions subtree itself; this sibling index exists purely so a reader that
+// only knows the eventId (e.g. the CMS dashboard) can enumerate session ids
+// without walking the live session tree. Map, not array, same reasoning as
+// Team.memberIds: a per-key write-once rule is all RTDB rules can express.
+export const sessionIndexSchema = z.record(z.string(), z.literal(true))
+export type SessionIndex = z.infer<typeof sessionIndexSchema>
+
 export const sessionConfigSchema = z.object({
   maxPlayers: z.number().int().positive(),
   maxCentralScreens: z.number().int().positive(),
