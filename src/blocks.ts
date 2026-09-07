@@ -91,6 +91,8 @@ export type Block =
   // Short badge-style title. Renders overlaid on a slide's hero image when one
   // exists (see tg-pilot's StepBody); falls back to plain styled text otherwise.
   | { kind: 'heading'; text: string }
+  // Raw HTML, author-trusted (CMS-authored content, not third-party input).
+  | { kind: 'html'; html: string }
 
 export const choiceSchema: z.ZodType<Choice> = z.object({
   id: z.string(),
@@ -187,5 +189,6 @@ export const blockSchema: z.ZodType<Block> = z.lazy(() =>
       direction: z.enum(['up', 'down']),
     }),
     z.object({ kind: z.literal('heading'), text: z.string() }),
+    z.object({ kind: z.literal('html'), html: z.string() }),
   ]),
 )
