@@ -59,6 +59,24 @@ const microPhase: Phase = {
         ],
         gate: { requireAnswered: true },
       },
+      {
+        id: 's3',
+        title: 'Path question',
+        blocks: [
+          {
+            kind: 'question',
+            question: {
+              qType: 'path_question',
+              prompt: [{ kind: 'text', markdown: 'Solve both cases' }],
+              cases: [
+                { id: 'c1', label: 'Case A', task: [{ kind: 'text', markdown: 'Task A' }] },
+                { id: 'c2', label: 'Case B', task: [{ kind: 'text', markdown: 'Task B' }], hidden: true },
+              ],
+              unlockAfterCases: 1,
+            },
+          },
+        ],
+      },
     ],
   },
 }

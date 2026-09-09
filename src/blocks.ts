@@ -59,6 +59,18 @@ export type Question =
       targetUrl?: string
       points?: ScanPoints
     }
+  | {
+      qType: 'path_question'
+      prompt: Block[]
+      cases: {
+        id: string
+        label: string
+        task: Block[]
+        maxLen?: number
+        hidden?: boolean
+      }[]
+      unlockAfterCases: number
+    }
 
 export type Block =
   | { kind: 'text'; markdown: string }
@@ -164,6 +176,20 @@ export const questionSchema: z.ZodType<Question> = z.lazy(() =>
       targetMediaId: z.string(),
       targetUrl: z.string().optional(),
       points: scanPointsSchema.optional(),
+    }),
+    z.object({
+      qType: z.literal('path_question'),
+      prompt: z.array(blockSchema),
+      cases: z.array(
+        z.object({
+          id: z.string(),
+          label: z.string(),
+          task: z.array(blockSchema),
+          maxLen: z.number().int().positive().optional(),
+          hidden: z.boolean().optional(),
+        }),
+      ).min(2),
+      unlockAfterCases: z.number().int().positive(),
     }),
   ]),
 )
