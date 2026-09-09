@@ -35,7 +35,10 @@ const microPhase: Phase = {
       {
         id: 's1',
         title: 'Welcome',
-        blocks: [{ kind: 'text', markdown: '# Welcome' }],
+        blocks: [
+          { kind: 'text', markdown: '# Welcome' },
+          { kind: 'button', variant: 'external-link', label: 'Baca panduan', url: 'https://example.com/guide' },
+        ],
       },
       {
         id: 's2',

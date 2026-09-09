@@ -93,6 +93,8 @@ export type Block =
   | { kind: 'heading'; text: string }
   // Raw HTML, author-trusted (CMS-authored content, not third-party input).
   | { kind: 'html'; html: string }
+  // 'copy' copies `text` to clipboard; 'external-link' opens `url` in a new tab.
+  | { kind: 'button'; variant: 'copy' | 'external-link'; label: string; text?: string; url?: string }
 
 export const choiceSchema: z.ZodType<Choice> = z.object({
   id: z.string(),
@@ -190,5 +192,12 @@ export const blockSchema: z.ZodType<Block> = z.lazy(() =>
     }),
     z.object({ kind: z.literal('heading'), text: z.string() }),
     z.object({ kind: z.literal('html'), html: z.string() }),
+    z.object({
+      kind: z.literal('button'),
+      variant: z.enum(['copy', 'external-link']),
+      label: z.string(),
+      text: z.string().optional(),
+      url: z.string().optional(),
+    }),
   ]),
 )
