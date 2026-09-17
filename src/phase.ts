@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { codeInputContentSchema } from './content/codeinput.js'
 import { codePieceContentSchema } from './content/codepiece.js'
 import { contentPageContentSchema } from './content/content-page.js'
+import { endContentSchema } from './content/end.js'
 import { idleContentSchema } from './content/idle.js'
 import { microlearningContentSchema } from './content/microlearning.js'
 import { miniGameContentSchema } from './content/minigame.js'
@@ -21,6 +22,7 @@ export const phaseTypeSchema = z.enum([
   'idle',
   'minigame',
   'reflection',
+  'end',
 ])
 export type PhaseType = z.infer<typeof phaseTypeSchema>
 
@@ -89,6 +91,7 @@ export const phaseContentSchema = z.discriminatedUnion('type', [
   idleContentSchema,
   miniGameContentSchema,
   reflectionContentSchema,
+  endContentSchema,
 ])
 export type PhaseContent = z.infer<typeof phaseContentSchema>
 
