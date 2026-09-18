@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { blockSchema } from './blocks.js'
 import { codeInputContentSchema } from './content/codeinput.js'
 import { codePieceContentSchema } from './content/codepiece.js'
 import { contentPageContentSchema } from './content/content-page.js'
@@ -95,6 +96,22 @@ export const phaseContentSchema = z.discriminatedUnion('type', [
 ])
 export type PhaseContent = z.infer<typeof phaseContentSchema>
 
+// Host-facing script for a phase. Authoring + render is host-only: the runtime
+// shows it on `/host`, and it MUST be stripped from the player-safe bundle
+// (tg-cms projection + demoBundlePlayerSafe) so it never reaches a player
+// device. `anchorScript` is the material the host reads aloud; `sharingPrompts`
+// are the discussion prompts the host poses to the room. Both reuse `Block[]`
+// so the host panel renders through the same renderer as every other surface.
+// `improvMarker` toggles the non-dismissible "HOST IMPROVISATION" banner.
+// Every field is optional: an absent (or empty) group renders the runtime's
+// "no script authored for this phase" fallback.
+export const hostScriptSchema = z.object({
+  anchorScript: z.array(blockSchema).optional(),
+  sharingPrompts: z.array(blockSchema).optional(),
+  improvMarker: z.boolean().optional(),
+})
+export type HostScript = z.infer<typeof hostScriptSchema>
+
 export const phaseSchema = z.object({
   id: z.string(),
   type: phaseTypeSchema,
@@ -114,5 +131,8 @@ export const phaseSchema = z.object({
   // informational — runtime does NOT enforce it (use `timer.seconds` +
   // `autoAdvanceOnExpire` for hard timeouts).
   durationMin: z.number().nonnegative().optional(),
+  // Host-facing script (see hostScriptSchema). Host-only — stripped from the
+  // player-safe bundle at publish time.
+  hostScript: hostScriptSchema.optional(),
 })
 export type Phase = z.infer<typeof phaseSchema>

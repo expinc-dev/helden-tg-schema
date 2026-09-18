@@ -59,6 +59,8 @@ Segala sesuatu yang dirender runtime adalah sebuah `Phase`. Sebuah fase punya `t
 | `idle` | Layar tunggu (animasi Lottie) |
 | `minigame` | Template mini-game yang bisa dipasang (config divalidasi runtime) |
 
+Sebuah fase juga bisa membawa `hostScript` — naskah yang hanya dibaca fasilitator di `/host`: `anchorScript` (materi yang dibacakan) dan `sharingPrompts` (prompt diskusi), keduanya `Block[]`, plus `improvMarker` untuk menyalakan banner **HOST IMPROVISATION**. Field ini **host-only**: CMS harus membuangnya dari bundle yang dikirim ke device peserta (lihat `hostScriptSchema` di `src/phase.ts`).
+
 ### 3. `Block` — material bersama
 
 `microlearning`, `content`, dan prompt pertanyaan memakai `Block` yang sama (`text` / `image` / `video` / `question`), dan `Question` mencakup 5 tipe (`single_choice`, `multi_choice`, `open_text`, `scale`, `short_answer`). Satu material, dipakai ulang di banyak tempat.

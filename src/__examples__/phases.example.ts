@@ -99,7 +99,46 @@ const reflectionPhase: Phase = {
   },
 }
 
-for (const p of [idlePhase, microPhase, reflectionPhase]) {
+// Host script (HLN-001). Host-only authoring: the host tablet renders
+// `anchorScript` verbatim, poses `sharingPrompts` to the room, and shows the
+// HOST IMPROVISATION banner when `improvMarker` is on. Every field optional —
+// the phase above is the shape a bundle authored before this field existed.
+const hostScriptPhase: Phase = {
+  id: 'p-host-script',
+  type: 'microlearning',
+  title: 'Babak 1 — Material',
+  syncMode: 'lockstep',
+  roles: {
+    player: { enabled: true },
+    host: { monitor: ['presence', 'progress'] },
+  },
+  content: {
+    type: 'microlearning',
+    mode: 'sequential',
+    steps: [{ id: 's1', blocks: [{ kind: 'text', markdown: 'Baca materi.' }] }],
+  },
+  hostScript: {
+    anchorScript: [
+      { kind: 'text', markdown: 'Bacakan: "Hari ini kita bicara soal AI di dapur."' },
+      { kind: 'image', mediaId: 'media-cooking-frame' },
+    ],
+    sharingPrompts: [
+      { kind: 'text', markdown: 'Tanyakan: apa satu alat dapur yang paling kamu andalkan?' },
+      { kind: 'text', markdown: 'Giliran peserta berbagi — jangan isi sendiri.' },
+    ],
+    improvMarker: true,
+  },
+}
+
+for (const p of [idlePhase, microPhase, reflectionPhase, hostScriptPhase]) {
   phaseSchema.parse(p)
   console.log(`OK ${p.id} (${p.type})`)
 }
+
+// Host-only subset is optional all the way down: `hostScript: {}` is valid, and
+// a phase that authorises no script at all stays valid (backward compatibility
+// is what makes this a MINOR bump, not MAJOR).
+phaseSchema.parse({ ...hostScriptPhase, hostScript: {} })
+const { hostScript: _omitted, ...withoutHostScript } = hostScriptPhase
+phaseSchema.parse(withoutHostScript)
+console.log('OK hostScript is optional and fully backward-compatible')
