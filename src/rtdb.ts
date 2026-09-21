@@ -106,8 +106,10 @@ export const centralStepSchema = z.object({
   // Quiz 3-stage machine: answering → reveal → leaderboard. Question and
   // answer choices show together from the start (no separate prep/reading
   // step); leaderboard is its own stage so it can't show mid-reveal.
-  // Optional so non-quiz lockstep phases (presentation) keep writing just { step }.
-  stage: z.enum(['answering', 'reveal', 'leaderboard']).optional(),
+  // 'question'/'analytics' are Unlocking's 2-stage machine per step: player
+  // free-text input, then the per-word answer chart. Optional so non-staged
+  // lockstep phases (presentation) keep writing just { step }.
+  stage: z.enum(['answering', 'reveal', 'leaderboard', 'question', 'analytics']).optional(),
   // Correct answer id, written on reveal so central/player can highlight it.
   correctId: z.string().optional(),
 })
@@ -149,6 +151,18 @@ export type FragmentOrder = z.infer<typeof fragmentOrderSchema>
 
 export const codePieceLiveSchema = z.object({ fragmentOrder: fragmentOrderSchema })
 export type CodePieceLive = z.infer<typeof codePieceLiveSchema>
+
+// Unlocking phase's jigsaw board — session-wide (not per-team), unlocks are
+// permanent for the life of the phase: an item stays revealed across steps
+// once any player has matched one of its accepted words. Keyed by phaseId
+// (sessions/{sessionId}/unlocking/{phaseId}), same reasoning as codepiece/
+// codeinput being keyed by phaseId — a session could revisit the phase type
+// more than once. Per-step answers/chart reuse playerLiveSchema.answers and
+// liveAggregatesSchema.distribution (keyed by stepId), no new field needed.
+export const unlockingLiveSchema = z.object({
+  unlockedItemIds: z.record(z.string(), z.number()), // itemId -> unlockedAt (epoch ms)
+})
+export type UnlockingLive = z.infer<typeof unlockingLiveSchema>
 
 // Team Mode node: /sessions/{sessionId}/teams/{teamId}. FLAT membership relation:
 // every device stays an equal players/{playerId}; this node just points at the

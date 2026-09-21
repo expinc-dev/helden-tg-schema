@@ -10,6 +10,7 @@ import { miniGameContentSchema } from './content/minigame.js'
 import { presentationContentSchema } from './content/presentation.js'
 import { quizContentSchema } from './content/quiz.js'
 import { reflectionContentSchema } from './content/reflection.js'
+import { unlockingContentSchema } from './content/unlocking.js'
 import { videoContentSchema } from './content/video.js'
 
 export const phaseTypeSchema = z.enum([
@@ -24,6 +25,7 @@ export const phaseTypeSchema = z.enum([
   'minigame',
   'reflection',
   'end',
+  'unlocking',
 ])
 export type PhaseType = z.infer<typeof phaseTypeSchema>
 
@@ -93,6 +95,7 @@ export const phaseContentSchema = z.discriminatedUnion('type', [
   miniGameContentSchema,
   reflectionContentSchema,
   endContentSchema,
+  unlockingContentSchema,
 ])
 export type PhaseContent = z.infer<typeof phaseContentSchema>
 

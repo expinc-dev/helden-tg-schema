@@ -130,7 +130,44 @@ const hostScriptPhase: Phase = {
   },
 }
 
-for (const p of [idlePhase, microPhase, reflectionPhase, hostScriptPhase]) {
+const unlockingPhase: Phase = {
+  id: 'p-unlocking',
+  type: 'unlocking',
+  title: 'Cari Kata Kunci',
+  syncMode: 'lockstep',
+  scoring: { mode: 'participation', maxPoints: 10 },
+  roles: {
+    player: { enabled: true },
+    central: { enabled: true },
+    host: { monitor: ['answers', 'progress'] },
+  },
+  content: {
+    type: 'unlocking',
+    items: [
+      { id: 'i-wajan', name: 'Wajan', description: 'Alat masak besi', media: { kind: 'image', mediaId: 'm-wajan' } },
+      { id: 'i-panci', name: 'Panci', media: { kind: 'url', url: 'https://example.com/panci.png' } },
+    ],
+    words: [
+      { id: 'w-wajan', word: 'wajan', itemId: 'i-wajan' },
+      { id: 'w-frypan', word: 'frypan', itemId: 'i-wajan' },
+      { id: 'w-panci', word: 'panci', itemId: 'i-panci' },
+    ],
+    steps: [
+      {
+        id: 's1',
+        title: 'Alat masak berbahan besi, biasa dipakai menggoreng',
+        acceptedWordIds: ['w-wajan', 'w-frypan'],
+      },
+      {
+        id: 's2',
+        title: 'Alat masak untuk merebus',
+        acceptedWordIds: ['w-panci'],
+      },
+    ],
+  },
+}
+
+for (const p of [idlePhase, microPhase, reflectionPhase, hostScriptPhase, unlockingPhase]) {
   phaseSchema.parse(p)
   console.log(`OK ${p.id} (${p.type})`)
 }
