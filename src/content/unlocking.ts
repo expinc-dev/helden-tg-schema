@@ -11,11 +11,27 @@ export const unlockingItemMediaSchema = z.discriminatedUnion('kind', [
 ])
 export type UnlockingItemMedia = z.infer<typeof unlockingItemMediaSchema>
 
+// Grid placement for the "assembled picture" puzzle board (PuzzleBoard in
+// tg-pilot) — optional on purpose: items/content without it keep rendering
+// as the classic flat card grid (ItemBoard), so existing authored content
+// never breaks. col/row are 0-based cell coordinates within
+// UnlockingContent.layout's grid; colSpan/rowSpan (default 1 each) let a
+// single piece cover more than one cell, for an asymmetric/abstract mosaic
+// rather than a uniform grid of equal squares.
+export const unlockingItemPositionSchema = z.object({
+  col: z.number().int().min(0),
+  row: z.number().int().min(0),
+  colSpan: z.number().int().min(1).optional(),
+  rowSpan: z.number().int().min(1).optional(),
+})
+export type UnlockingItemPosition = z.infer<typeof unlockingItemPositionSchema>
+
 export const unlockingItemSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string().optional(),
   media: unlockingItemMediaSchema.optional(),
+  position: unlockingItemPositionSchema.optional(),
 })
 export type UnlockingItem = z.infer<typeof unlockingItemSchema>
 
@@ -41,6 +57,16 @@ export const unlockingStepSchema = z.object({
 })
 export type UnlockingStep = z.infer<typeof unlockingStepSchema>
 
+// Overall grid dimensions for the assembled-picture puzzle board. Optional,
+// sibling to each item's own optional `position` — both must be present for
+// PuzzleBoard to render (a `layout` with items missing `position` falls back
+// to the classic card grid too, same as `layout` being absent entirely).
+export const unlockingLayoutSchema = z.object({
+  columns: z.number().int().min(1),
+  rows: z.number().int().min(1),
+})
+export type UnlockingLayout = z.infer<typeof unlockingLayoutSchema>
+
 export const unlockingContentSchema = z.object({
   type: z.literal('unlocking'),
   items: z.array(unlockingItemSchema),
@@ -49,5 +75,6 @@ export const unlockingContentSchema = z.object({
   // Answer-matching mode against accepted words. Absent/false = case-insensitive
   // + trimmed (default), matching the codeinput.caseSensitive convention.
   caseSensitive: z.boolean().optional(),
+  layout: unlockingLayoutSchema.optional(),
 })
 export type UnlockingContent = z.infer<typeof unlockingContentSchema>

@@ -144,8 +144,22 @@ const unlockingPhase: Phase = {
   content: {
     type: 'unlocking',
     items: [
-      { id: 'i-wajan', name: 'Wajan', description: 'Alat masak besi', media: { kind: 'image', mediaId: 'm-wajan' } },
-      { id: 'i-panci', name: 'Panci', media: { kind: 'url', url: 'https://example.com/panci.png' } },
+      {
+        id: 'i-wajan',
+        name: 'Wajan',
+        description: 'Alat masak besi',
+        media: { kind: 'image', mediaId: 'm-wajan' },
+        // Exercises the optional puzzle-board placement fields alongside
+        // `content.layout` below — colSpan: 2 makes this piece span two
+        // columns, demonstrating the asymmetric/abstract mosaic case.
+        position: { col: 0, row: 0, colSpan: 2, rowSpan: 1 },
+      },
+      {
+        id: 'i-panci',
+        name: 'Panci',
+        media: { kind: 'url', url: 'https://example.com/panci.png' },
+        position: { col: 2, row: 0, rowSpan: 2 },
+      },
     ],
     words: [
       { id: 'w-wajan', word: 'wajan', itemId: 'i-wajan' },
@@ -164,6 +178,7 @@ const unlockingPhase: Phase = {
         acceptedWordIds: ['w-panci'],
       },
     ],
+    layout: { columns: 3, rows: 2 },
   },
 }
 
