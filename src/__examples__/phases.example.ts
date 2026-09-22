@@ -182,7 +182,59 @@ const unlockingPhase: Phase = {
   },
 }
 
-for (const p of [idlePhase, microPhase, reflectionPhase, hostScriptPhase, unlockingPhase]) {
+const worldBuildingPhase: Phase = {
+  id: 'p-worldbuilding',
+  type: 'worldbuilding',
+  title: 'Future Game — Finale',
+  syncMode: 'lockstep',
+  scoring: { mode: 'none' },
+  roles: {
+    player: { enabled: true },
+    central: { enabled: true },
+    host: { monitor: ['answers'] },
+  },
+  content: {
+    type: 'worldbuilding',
+    steps: [
+      { id: 'st-1', label: 'Intro text 1', kind: 'text', bodyText: 'patterns melting' },
+      {
+        id: 'st-2',
+        label: 'Reveal base scene',
+        kind: 'asset',
+        media: { kind: 'image', mediaId: 'm-base-scene' },
+      },
+      {
+        id: 'st-3',
+        label: 'Vraag 1 — the stream',
+        kind: 'question',
+        questionText:
+          'Noem één reactie die op zichzelf heel begrijpelijk is — maar die, als hij zich herhaalt, het verloop een andere kant op stuurt.',
+      },
+      {
+        id: 'st-4',
+        label: 'Vraag 1 — beaver 1 reveal',
+        kind: 'asset',
+        media: { kind: 'json', mediaId: 'm-beaver-1-lottie' },
+      },
+      {
+        id: 'st-5',
+        label: 'Vraag 3 — boss reveal stage 1 (no player input)',
+        kind: 'text',
+        bodyText: 'Elke game heeft een big boss...',
+      },
+    ],
+    closingPrompt: 'Wat ga je morgen anders doen?',
+  },
+}
+
+for (const p of [
+  idlePhase,
+  microPhase,
+  reflectionPhase,
+  hostScriptPhase,
+  unlockingPhase,
+  worldBuildingPhase,
+]) {
   phaseSchema.parse(p)
   console.log(`OK ${p.id} (${p.type})`)
 }
