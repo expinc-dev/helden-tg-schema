@@ -32,6 +32,11 @@ export const worldBuildingStepSchema = z.object({
   bodyText: z.string().optional(),
   media: worldBuildingMediaSchema.optional(),
   questionText: z.string().optional(),
+  // Host-only cue for this specific step (e.g. the exact line to read aloud,
+  // a reminder of what to do) — never sent to player devices, same
+  // host-only contract as phase-level hostScript, just scoped to one step
+  // instead of the whole phase. Optional: most steps don't need one.
+  hostNote: z.string().optional(),
 })
 export type WorldBuildingStep = z.infer<typeof worldBuildingStepSchema>
 

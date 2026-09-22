@@ -221,6 +221,8 @@ const worldBuildingPhase: Phase = {
         label: 'Vraag 3 — boss reveal stage 1 (no player input)',
         kind: 'text',
         bodyText: 'Elke game heeft een big boss...',
+        hostNote:
+          'Ask Jessica live: "Elke game heeft een big boss... wie is de big boss van deze future?"',
       },
     ],
     closingPrompt: 'Wat ga je morgen anders doen?',
