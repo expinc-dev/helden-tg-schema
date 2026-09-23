@@ -224,6 +224,17 @@ const worldBuildingPhase: Phase = {
         hostNote:
           'Ask Jessica live: "Elke game heeft een big boss... wie is de big boss van deze future?"',
       },
+      {
+        id: 'st-6',
+        label: 'Vraag 4 — magnifying glass icon',
+        kind: 'asset',
+        media: { kind: 'image', mediaId: 'm-icon-magnifier' },
+        // HUD icon: fixed corner position (percent-based), accumulates
+        // instead of replacing the scene — exercises placement/position
+        // alongside the default (absent = 'scene') steps above.
+        placement: 'hud',
+        position: { x: 90, y: 10 },
+      },
     ],
     closingPrompt: 'Wat ga je morgen anders doen?',
   },

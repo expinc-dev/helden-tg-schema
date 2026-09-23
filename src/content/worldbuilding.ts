@@ -14,6 +14,16 @@ export const worldBuildingMediaSchema = z.discriminatedUnion('kind', [
 ])
 export type WorldBuildingMedia = z.infer<typeof worldBuildingMediaSchema>
 
+// Percent-based (0-100), not pixels, so a HUD icon's position stays
+// responsive across screen sizes. x/y name the position of the icon's
+// CENTER point on screen (runtime centers the element on that point via
+// translate(-50%, -50%), not its top-left corner).
+export const worldBuildingPositionSchema = z.object({
+  x: z.number().min(0).max(100),
+  y: z.number().min(0).max(100),
+})
+export type WorldBuildingPosition = z.infer<typeof worldBuildingPositionSchema>
+
 // One entry in the operator's linear trigger list — a live, presenter-paced
 // "world building" segment (base scene + layered reveals + audience
 // freetext questions feeding a live ticker, no scoring, no player accounts).
@@ -37,6 +47,20 @@ export const worldBuildingStepSchema = z.object({
   // host-only contract as phase-level hostScript, just scoped to one step
   // instead of the whole phase. Optional: most steps don't need one.
   hostNote: z.string().optional(),
+  // Only meaningful when kind === 'asset'. 'scene' (default/absent) becomes
+  // the persistent full-bleed background — the runtime keeps showing the
+  // most recent 'scene' reveal underneath every later text/question step,
+  // only replacing it when a NEW 'scene' asset step is reached (see
+  // BLUEPRINT: each Lottie/GIF is authored to start exactly where the
+  // previous one's last frame ended, so the "layering" is baked into the
+  // assets themselves, not composited by the runtime). 'hud' is a small
+  // fixed-position overlay icon (e.g. Vraag 4's magnifying glass/pause
+  // icons) that ACCUMULATES instead of replacing the scene — once revealed
+  // it stays on screen alongside any other 'hud' icons already revealed.
+  placement: z.enum(['scene', 'hud']).optional(),
+  // Only meaningful when placement === 'hud'. Absent = runtime falls back to
+  // a default corner position rather than rendering at (0,0).
+  position: worldBuildingPositionSchema.optional(),
 })
 export type WorldBuildingStep = z.infer<typeof worldBuildingStepSchema>
 
