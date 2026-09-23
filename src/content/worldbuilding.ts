@@ -1,15 +1,21 @@
 import { z } from 'zod'
 
 // Media reference for a step's visual reveal — same shape/convention as
-// unlockingItemMediaSchema (content/unlocking.ts): 'image'/'json' resolve
-// mediaId -> url at author pick-time via the Media library, 'json' reuses
-// the library's 'lottie' MediaType so an author can pick a Lottie animation
-// file the same way they'd pick an image. Kept as its own local schema
-// (not imported from unlocking.ts) so the two content types stay
-// independently editable without coupling one's shape to the other's.
+// unlockingItemMediaSchema (content/unlocking.ts): 'image'/'json'/'video'
+// resolve mediaId -> url at author pick-time via the Media library, 'json'
+// reuses the library's 'lottie' MediaType so an author can pick a Lottie
+// animation file the same way they'd pick an image, 'video' reuses the
+// library's 'video' MediaType (mp4/webm) — an mp4 gets the exact same
+// "play once, hold on last frame" treatment as a GIF/WebP reveal, just via
+// a native <video> element instead of a decoded canvas (see Scene.tsx in
+// the runtime), so authors can freely mix GIF/WebP and video clips across
+// steps with no experience difference. Kept as its own local schema (not
+// imported from unlocking.ts) so the two content types stay independently
+// editable without coupling one's shape to the other's.
 export const worldBuildingMediaSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('image'), mediaId: z.string(), url: z.string().optional() }),
   z.object({ kind: z.literal('json'), mediaId: z.string(), url: z.string().optional() }),
+  z.object({ kind: z.literal('video'), mediaId: z.string(), url: z.string().optional() }),
   z.object({ kind: z.literal('url'), url: z.string() }),
 ])
 export type WorldBuildingMedia = z.infer<typeof worldBuildingMediaSchema>
