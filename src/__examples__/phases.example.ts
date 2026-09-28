@@ -77,49 +77,6 @@ const microPhase: Phase = {
           },
         ],
       },
-      {
-        id: 's4',
-        title: 'Prompt builder',
-        blocks: [
-          {
-            kind: 'question',
-            question: {
-              qType: 'prompt_builder',
-              prompt: [{ kind: 'text', markdown: 'Pilih satu jalur untuk usahamu' }],
-              paths: [
-                {
-                  id: 'suaramu',
-                  label: 'Perkuat Suaramu',
-                  fields: [
-                    { id: 'nama_usaha', label: 'Nama usaha', example: 'Warung Berkah' },
-                    { id: 'produk', label: 'Produk/jasa kamu', example: 'nasi kotak untuk acara' },
-                  ],
-                  promptTemplate:
-                    'Kamu asisten yang membantu pemilik usaha kecil di Indonesia. Ini usaha saya: Nama: {nama_usaha}. Produk: {produk}.',
-                },
-                {
-                  id: 'makan_waktu',
-                  label: 'Selesaikan yang Makan Waktu',
-                  fields: [
-                    { id: 'tugas_berulang', label: 'Tugas yang paling makan waktu', example: 'balas chat harga & ongkir' },
-                  ],
-                  promptTemplate: 'Bantu aku bikin template balasan cepat untuk: {tugas_berulang}.',
-                },
-                {
-                  id: 'tanya_bebas',
-                  label: 'Tanya Bebas',
-                  hidden: true,
-                  fields: [
-                    { id: 'pertanyaan', label: 'Satu pertanyaan yang mengganjal soal usahamu', example: 'gimana caranya biar pelanggan balik lagi?' },
-                  ],
-                  promptTemplate: 'Aku pemilik usaha kecil. Pertanyaanku: {pertanyaan}.',
-                },
-              ],
-              unlockAfterPaths: 1,
-            },
-          },
-        ],
-      },
     ],
   },
 }
@@ -139,30 +96,6 @@ const reflectionPhase: Phase = {
     prompt: 'What is one thing you will do differently after this session?',
     openText: { label: 'Your reflection', maxLen: 500 },
     scale: { label: 'How confident do you feel?', min: 1, max: 5, labels: ['Not at all', 'Very'] },
-  },
-}
-
-// Closing commitment (BRIGHT-970): structured two-field variant of the same
-// phase type — "I will __, so that __" — instead of the free openText above.
-// Scoring intentionally 'none' (private takeaway, not graded).
-const closingCommitmentPhase: Phase = {
-  id: 'p-closing-commitment',
-  type: 'reflection',
-  title: 'Closing Reflection',
-  syncMode: 'self_paced',
-  scoring: { mode: 'none' },
-  roles: {
-    player: { enabled: true },
-    host: { monitor: ['answers'] },
-  },
-  content: {
-    type: 'reflection',
-    prompt: 'One concrete commitment for next week.',
-    commitment: {
-      action: { label: 'I will', maxLen: 200 },
-      reason: { label: 'so that', maxLen: 200 },
-    },
-    scale: { label: 'How confident are you you will follow through?', min: 1, max: 5 },
   },
 }
 
@@ -311,7 +244,6 @@ for (const p of [
   idlePhase,
   microPhase,
   reflectionPhase,
-  closingCommitmentPhase,
   hostScriptPhase,
   unlockingPhase,
   worldBuildingPhase,
