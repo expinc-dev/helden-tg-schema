@@ -71,6 +71,32 @@ export type Question =
       }[]
       unlockAfterCases: number
     }
+  // Picker of named "paths" (same reveal mechanics as path_question: a
+  // path can be hidden and only appears once unlockAfterPaths non-hidden
+  // paths are done) — but where path_question's case is a single open-text
+  // answer, each path here IS a small form: player fills its labeled fields
+  // (each shows `example` in place until answered), runtime assembles them
+  // into that path's own `promptTemplate` ({fieldId} placeholders, scoped to
+  // that path's own fields) and renders its own Copy + open-Gemini controls —
+  // self-contained, NOT the sibling Block 'button', since a 'button' has no
+  // way to reference another block's live answer.
+  | {
+      qType: 'prompt_builder'
+      prompt: Block[]
+      paths: {
+        id: string
+        label: string
+        fields: {
+          id: string
+          label: string
+          example: string
+          maxLen?: number
+        }[]
+        promptTemplate: string
+        hidden?: boolean
+      }[]
+      unlockAfterPaths: number
+    }
 
 export type Block =
   | { kind: 'text'; markdown: string }
@@ -190,6 +216,27 @@ export const questionSchema: z.ZodType<Question> = z.lazy(() =>
         }),
       ).min(2),
       unlockAfterCases: z.number().int().positive(),
+    }),
+    z.object({
+      qType: z.literal('prompt_builder'),
+      prompt: z.array(blockSchema),
+      paths: z.array(
+        z.object({
+          id: z.string(),
+          label: z.string(),
+          fields: z.array(
+            z.object({
+              id: z.string(),
+              label: z.string(),
+              example: z.string(),
+              maxLen: z.number().int().positive().optional(),
+            }),
+          ),
+          promptTemplate: z.string(),
+          hidden: z.boolean().optional(),
+        }),
+      ).min(1),
+      unlockAfterPaths: z.number().int().positive(),
     }),
   ]),
 )

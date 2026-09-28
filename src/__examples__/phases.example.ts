@@ -77,6 +77,49 @@ const microPhase: Phase = {
           },
         ],
       },
+      {
+        id: 's4',
+        title: 'Prompt builder',
+        blocks: [
+          {
+            kind: 'question',
+            question: {
+              qType: 'prompt_builder',
+              prompt: [{ kind: 'text', markdown: 'Pilih satu jalur untuk usahamu' }],
+              paths: [
+                {
+                  id: 'suaramu',
+                  label: 'Perkuat Suaramu',
+                  fields: [
+                    { id: 'nama_usaha', label: 'Nama usaha', example: 'Warung Berkah' },
+                    { id: 'produk', label: 'Produk/jasa kamu', example: 'nasi kotak untuk acara' },
+                  ],
+                  promptTemplate:
+                    'Kamu asisten yang membantu pemilik usaha kecil di Indonesia. Ini usaha saya: Nama: {nama_usaha}. Produk: {produk}.',
+                },
+                {
+                  id: 'makan_waktu',
+                  label: 'Selesaikan yang Makan Waktu',
+                  fields: [
+                    { id: 'tugas_berulang', label: 'Tugas yang paling makan waktu', example: 'balas chat harga & ongkir' },
+                  ],
+                  promptTemplate: 'Bantu aku bikin template balasan cepat untuk: {tugas_berulang}.',
+                },
+                {
+                  id: 'tanya_bebas',
+                  label: 'Tanya Bebas',
+                  hidden: true,
+                  fields: [
+                    { id: 'pertanyaan', label: 'Satu pertanyaan yang mengganjal soal usahamu', example: 'gimana caranya biar pelanggan balik lagi?' },
+                  ],
+                  promptTemplate: 'Aku pemilik usaha kecil. Pertanyaanku: {pertanyaan}.',
+                },
+              ],
+              unlockAfterPaths: 1,
+            },
+          },
+        ],
+      },
     ],
   },
 }
