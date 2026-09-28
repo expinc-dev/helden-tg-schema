@@ -142,6 +142,30 @@ const reflectionPhase: Phase = {
   },
 }
 
+// Closing commitment (BRIGHT-970): structured two-field variant of the same
+// phase type — "I will __, so that __" — instead of the free openText above.
+// Scoring intentionally 'none' (private takeaway, not graded).
+const closingCommitmentPhase: Phase = {
+  id: 'p-closing-commitment',
+  type: 'reflection',
+  title: 'Closing Reflection',
+  syncMode: 'self_paced',
+  scoring: { mode: 'none' },
+  roles: {
+    player: { enabled: true },
+    host: { monitor: ['answers'] },
+  },
+  content: {
+    type: 'reflection',
+    prompt: 'One concrete commitment for next week.',
+    commitment: {
+      action: { label: 'I will', maxLen: 200 },
+      reason: { label: 'so that', maxLen: 200 },
+    },
+    scale: { label: 'How confident are you you will follow through?', min: 1, max: 5 },
+  },
+}
+
 // Host script (HLN-001). Host-only authoring: the host tablet renders
 // `anchorScript` verbatim, poses `sharingPrompts` to the room, and shows the
 // HOST IMPROVISATION banner when `improvMarker` is on. Every field optional —
@@ -287,6 +311,7 @@ for (const p of [
   idlePhase,
   microPhase,
   reflectionPhase,
+  closingCommitmentPhase,
   hostScriptPhase,
   unlockingPhase,
   worldBuildingPhase,
