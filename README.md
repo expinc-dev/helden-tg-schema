@@ -103,6 +103,10 @@ Naikkan saat bentuk data berubah, sesuai jenis perubahannya:
 
 Aturan praktis: kalau data lama masih lolos `parse` dengan schema baru → MINOR/PATCH. Kalau data lama jadi invalid → MAJOR.
 
+### Riwayat singkat
+
+- **`5.1.0`** (MINOR) — `image_sequence.images[].role?: 'decoy' | 'target'`. `decoy` = gambar pengecoh: tampil di pool tapi tanpa slot dan tidak masuk jawaban benar; default `'target'` bila kosong (data lama tetap valid). Urutan jawaban benar = urutan item non-decoy di `images[]`.
+
 ### Cara update
 
 1. Ubah skema Zod di `src/` (satu-satunya tempat bentuk data hidup).

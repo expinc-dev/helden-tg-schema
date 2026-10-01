@@ -34,7 +34,15 @@ export type Question =
   | { qType: 'order'; prompt: Block[]; items: { id: string; label: string }[] }
   // Drag pool images into numbered slots (slots start empty, unlike 'order'
   // which reorders a pre-placed list).
-  | { qType: 'image_sequence'; prompt: Block[]; images: { id: string; mediaId: string }[] }
+  //
+  // images[] order of the non-decoy items = the correct answer order. role
+  // 'decoy' images are shown in the pool but get no slot and are not part of the
+  // answer; role defaults to 'target' when omitted (data from before 5.1.0).
+  | {
+      qType: 'image_sequence'
+      prompt: Block[]
+      images: { id: string; mediaId: string; role?: 'decoy' | 'target' }[]
+    }
   // Player assembles a physical puzzle, then scans the result. referenceMediaId
   // is shown to the player as "what to build"; expectedValue is the QR payload
   // to match (author-typed, decoded QR images aren't auto-read at author time).
@@ -160,7 +168,13 @@ export const questionSchema: z.ZodType<Question> = z.lazy(() =>
     z.object({
       qType: z.literal('image_sequence'),
       prompt: z.array(blockSchema),
-      images: z.array(z.object({ id: z.string(), mediaId: z.string() })),
+      images: z.array(
+        z.object({
+          id: z.string(),
+          mediaId: z.string(),
+          role: z.enum(['decoy', 'target']).optional(),
+        }),
+      ),
     }),
     z.object({
       qType: z.literal('qr_scan'),

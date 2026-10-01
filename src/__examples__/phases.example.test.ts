@@ -157,7 +157,8 @@ const phase2WhatIsLlm: Phase = {
               images: [
                 { id: 'g1', mediaId: 'media-sequence-1' },
                 { id: 'g2', mediaId: 'media-sequence-2' },
-                { id: 'g3', mediaId: 'media-sequence-3' },
+                { id: 'g3', mediaId: 'media-sequence-3', role: 'target' },
+                { id: 'g4', mediaId: 'media-sequence-4', role: 'decoy' },
               ],
             },
           },
