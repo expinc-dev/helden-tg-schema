@@ -7,6 +7,7 @@ import { endContentSchema } from './content/end.js'
 import { idleContentSchema } from './content/idle.js'
 import { microlearningContentSchema } from './content/microlearning.js'
 import { miniGameContentSchema } from './content/minigame.js'
+import { normalQuizContentSchema } from './content/normalquiz.js'
 import { presentationContentSchema } from './content/presentation.js'
 import { quizContentSchema } from './content/quiz.js'
 import { reflectionContentSchema } from './content/reflection.js'
@@ -28,6 +29,7 @@ export const phaseTypeSchema = z.enum([
   'end',
   'unlocking',
   'worldbuilding',
+  'normalquiz',
 ])
 export type PhaseType = z.infer<typeof phaseTypeSchema>
 
@@ -99,6 +101,7 @@ export const phaseContentSchema = z.discriminatedUnion('type', [
   endContentSchema,
   unlockingContentSchema,
   worldBuildingContentSchema,
+  normalQuizContentSchema,
 ])
 export type PhaseContent = z.infer<typeof phaseContentSchema>
 

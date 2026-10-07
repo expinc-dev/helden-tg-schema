@@ -51,6 +51,7 @@ Segala sesuatu yang dirender runtime adalah sebuah `Phase`. Sebuah fase punya `t
 |------|--------|
 | `microlearning` | Materi berlangkah, bisa `sequential` (gated) atau `free` |
 | `quiz` | Kuis, mode `on_device` atau `central_prompt` (ala Kahoot) |
+| `normalquiz` | Kuis biasa: tiap pemain jalan sendiri di HP, dinilai host |
 | `video` | Video, ditonton bareng di central atau di device |
 | `content` | Halaman teks + gambar |
 | `codepiece` | Tiap pemain dapat potongan kode |
@@ -105,6 +106,7 @@ Aturan praktis: kalau data lama masih lolos `parse` dengan schema baru → MINOR
 
 ### Riwayat singkat
 
+- **`5.2.0`** (MINOR) — `PhaseType` + konten baru `normalquiz` (`content/normalquiz.ts`): kuis biasa (bukan Kahoot), self-paced di HP player, dinilai host, central hanya progres/statistik. Field: `questions`, `revealAnswers`. Aditif, data lama tetap valid.
 - **`5.1.0`** (MINOR) — `image_sequence.images[].role?: 'decoy' | 'target'`. `decoy` = gambar pengecoh: tampil di pool tapi tanpa slot dan tidak masuk jawaban benar; default `'target'` bila kosong (data lama tetap valid). Urutan jawaban benar = urutan item non-decoy di `images[]`.
 
 ### Cara update
