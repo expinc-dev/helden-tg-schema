@@ -10,6 +10,7 @@
 // tsconfig.json excludes.
 /// <reference types="node" />
 import assert from 'node:assert'
+import { normalQuizContentSchema } from '../content/normalquiz.js'
 import { phaseSchema, type Phase } from '../phase.js'
 import { publishedGameSchema } from '../published.js'
 import { teamSchema, liveAggregatesSchema, type Team } from '../rtdb.js'
@@ -321,6 +322,47 @@ const phase7bCodeinput: Phase = {
     onSuccess: { advance: true },
   },
 }
+
+// --- Normal quiz ---------------------------------------------------------
+// Not from the PDF — added with the `normalquiz` phase type (5.2.0). Self-paced,
+// correctness-graded single_choice; kept out of `allPhases` so the "8 walkthrough
+// fases" counts below stay true to the PDF.
+const phaseNormalQuiz: Phase = {
+  id: 'phase-normal-quiz',
+  type: 'normalquiz',
+  title: 'Kuis Biasa',
+  syncMode: 'self_paced',
+  scoring: { mode: 'correctness', maxPoints: 100 },
+  roles: {
+    player: { enabled: true },
+    central: { enabled: true, showResults: true },
+    host: { monitor: ['progress', 'scores', 'answers'] },
+  },
+  content: {
+    type: 'normalquiz',
+    revealAnswers: true,
+    questions: [
+      {
+        qType: 'single_choice',
+        prompt: [{ kind: 'text', markdown: 'Data rahasia perusahaan sebaiknya…' }],
+        options: [
+          { id: 'a', label: 'Boleh ditempel ke AI publik asal cepat' },
+          { id: 'b', label: 'Jangan ditempel ke AI publik' },
+        ],
+        correctId: 'b',
+      },
+    ],
+  },
+}
+assert.strictEqual(phaseSchema.parse(phaseNormalQuiz).type, 'normalquiz')
+console.log(`OK ${phaseNormalQuiz.id} (${phaseNormalQuiz.type})`)
+
+// revealAnswers is required (mirrors quiz) — a normalquiz without it must not parse.
+assert.strictEqual(
+  normalQuizContentSchema.safeParse({ type: 'normalquiz', questions: [] }).success,
+  false,
+)
+console.log('OK normalquiz content without revealAnswers is rejected')
 
 // --- Team Mode ---------------------------------------------------------
 // Not from the PDF (the walkthrough predates the team model) — added per the

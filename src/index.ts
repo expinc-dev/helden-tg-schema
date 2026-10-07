@@ -9,6 +9,7 @@ export * from './results.js'
 // If direct access is needed, re-export explicitly here.
 export * from './content/microlearning.js'
 export * from './content/quiz.js'
+export * from './content/normalquiz.js'
 export * from './content/video.js'
 export * from './content/content-page.js'
 export * from './content/codepiece.js'
