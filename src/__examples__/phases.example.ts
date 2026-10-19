@@ -37,7 +37,13 @@ const microPhase: Phase = {
         title: 'Welcome',
         blocks: [
           { kind: 'text', markdown: '# Welcome' },
-          { kind: 'button', variant: 'external-link', label: 'Baca panduan', url: 'https://example.com/guide' },
+          {
+            kind: 'button',
+            variant: 'external-link',
+            label: 'Baca panduan',
+            url: 'https://example.com/guide',
+            description: 'Buka panduan lengkap di tab baru.',
+          },
         ],
       },
       {
@@ -52,6 +58,7 @@ const microPhase: Phase = {
               options: [
                 { id: 'a', label: 'Yes' },
                 { id: 'b', label: 'No' },
+                { id: 'c', label: 'Lainnya', isOther: true, otherPlaceholder: 'Tulis jawabanmu...' },
               ],
               correctId: 'a',
             },

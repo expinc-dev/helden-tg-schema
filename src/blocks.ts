@@ -4,7 +4,17 @@ import { z } from 'zod'
 // and a Block can be a question). We declare the TS types first, then annotate
 // the schemas with z.ZodType<T> so tsc doesn't choke on the self-reference.
 
-export type Choice = { id: string; label: string; mediaId?: string }
+// isOther marks the free-text "Lainnya" option of a single_choice question:
+// the runtime opens an inline text field under it. It replaces matching the
+// label text, so the label is free to read however the author wants.
+// otherPlaceholder is that field's placeholder; only meaningful with isOther.
+export type Choice = {
+  id: string
+  label: string
+  mediaId?: string
+  isOther?: boolean
+  otherPlaceholder?: string
+}
 
 // Retry-scoring for qr_scan/pattern_scan — deliberately local to these two
 // qTypes, not the phase-level ScoringConfig (which has no per-attempt-penalty
@@ -114,12 +124,23 @@ export type Block =
   // Raw HTML, author-trusted (CMS-authored content, not third-party input).
   | { kind: 'html'; html: string }
   // 'copy' copies `text` to clipboard; 'external-link' opens `url` in a new tab.
-  | { kind: 'button'; variant: 'copy' | 'external-link'; label: string; text?: string; url?: string }
+  // `description` is the short line shown under an external-link button's label
+  // (the Gemini link card); the runtime falls back to its built-in text when omitted.
+  | {
+      kind: 'button'
+      variant: 'copy' | 'external-link'
+      label: string
+      text?: string
+      url?: string
+      description?: string
+    }
 
 export const choiceSchema: z.ZodType<Choice> = z.object({
   id: z.string(),
   label: z.string(),
   mediaId: z.string().optional(),
+  isOther: z.boolean().optional(),
+  otherPlaceholder: z.string().optional(),
 })
 
 export const scanPointsSchema: z.ZodType<ScanPoints> = z.object({
@@ -238,6 +259,7 @@ export const blockSchema: z.ZodType<Block> = z.lazy(() =>
       label: z.string(),
       text: z.string().optional(),
       url: z.string().optional(),
+      description: z.string().optional(),
     }),
   ]),
 )
