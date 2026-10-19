@@ -11,6 +11,7 @@
 /// <reference types="node" />
 import assert from 'node:assert'
 import { normalQuizContentSchema } from '../content/normalquiz.js'
+import { summaryContentSchema } from '../content/summary.js'
 import { phaseSchema, type Phase } from '../phase.js'
 import { publishedGameSchema } from '../published.js'
 import { teamSchema, liveAggregatesSchema, type Team } from '../rtdb.js'
@@ -363,6 +364,36 @@ assert.strictEqual(
   false,
 )
 console.log('OK normalquiz content without revealAnswers is rejected')
+
+// --- Summary -------------------------------------------------------------
+// Not from the PDF — added with the `summary` phase type (5.3.0). Every content
+// field is optional, so a bare `{ type: 'summary' }` must parse too.
+const phaseSummary: Phase = {
+  id: 'phase-summary',
+  type: 'summary',
+  title: 'Ringkasan',
+  syncMode: 'self_paced',
+  roles: {
+    player: { enabled: true },
+    central: { enabled: true },
+    host: { monitor: [] },
+  },
+  content: {
+    type: 'summary',
+    heading: 'Ringkasan',
+    subtitle: 'Anda dapat mengunduh seluruh hasil dalam bentuk .pdf',
+    downloadLabel: 'Kirim ke Whatsapp!',
+    downloadDescription: 'Unduh seluruh hasil dan kirim ke whatsapp masing-masing!',
+    pdfTitle: 'Perjalananmu',
+    instructions: 'Hari ini kamu menulis apa yang paling makan waktu di usahamu.',
+    closingLine: 'Kamu nggak butuh jadi ahli AI.',
+    closingHighlight: 'Kamu cuma butuh tetap jadi kamu sambil alatnya bantu.',
+  },
+}
+assert.strictEqual(phaseSchema.parse(phaseSummary).type, 'summary')
+console.log(`OK ${phaseSummary.id} (${phaseSummary.type})`)
+assert.strictEqual(summaryContentSchema.safeParse({ type: 'summary' }).success, true)
+console.log('OK summary content with no authored copy parses')
 
 // --- Team Mode ---------------------------------------------------------
 // Not from the PDF (the walkthrough predates the team model) — added per the
