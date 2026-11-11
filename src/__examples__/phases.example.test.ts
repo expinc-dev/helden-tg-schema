@@ -480,6 +480,26 @@ assert.strictEqual(wordCloudLiveSchema.safeParse({ words: { w1: { playerId: 'p-1
 assert.strictEqual(wordCloudLiveSchema.safeParse({ hiddenWordIds: { w1: false } }).success, false)
 console.log('OK wordCloud live node (words + hiddenWordIds) validates')
 
+// `closed` (5.5.0): host closed the input. true-or-absent, like hiddenWordIds.
+assert.strictEqual(wordCloudLiveSchema.safeParse({ closed: true }).success, true)
+assert.strictEqual(
+  wordCloudLiveSchema.safeParse({
+    words: { w1: { playerId: 'p-1', text: 'Samenwerking', submittedAt: 1730000001000 } },
+    hiddenWordIds: { w1: true },
+    closed: true,
+  }).success,
+  true,
+)
+// A node without `closed` (everything written before 5.5.0) still parses: input is open.
+assert.strictEqual(
+  wordCloudLiveSchema.safeParse({
+    words: { w1: { playerId: 'p-1', text: 'Samenwerking', submittedAt: 1730000001000 } },
+  }).success,
+  true,
+)
+assert.strictEqual(wordCloudLiveSchema.safeParse({ closed: false }).success, false)
+console.log('OK wordCloud live node closed flag: true parses, absent parses, false is rejected')
+
 // --- Team Mode ---------------------------------------------------------
 // Not from the PDF (the walkthrough predates the team model) — added per the
 // "Adds the team model" ticket. Proves teamMode on Phase, the Team roster shape,

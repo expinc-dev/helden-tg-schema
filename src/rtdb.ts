@@ -166,8 +166,8 @@ export type UnlockingLive = z.infer<typeof unlockingLiveSchema>
 
 // Word cloud phase — sessions/{sessionId}/wordCloud/{phaseId}. Keyed by phaseId
 // for the same reason as unlocking/codepiece: a session can revisit the phase type.
-// Both maps are optional because RTDB does not store an empty object, so a freshly
-// opened phase has neither. Counts shown on the host panel (submitted / hidden) are
+// Every field is optional because RTDB does not store an empty object or a false
+// value, so a freshly opened phase has none of them. Counts shown on the host panel (submitted / hidden) are
 // derived from these two maps, never stored.
 //
 // `hiddenWordIds` is a separate node from `words` on purpose: a player writes only
@@ -189,6 +189,11 @@ export const wordCloudLiveSchema = z.object({
   words: z.record(z.string(), wordCloudWordSchema).optional(),
   // wordId -> true. Key present = hidden by the host; absent = visible.
   hiddenWordIds: z.record(z.string(), z.literal(true)).optional(),
+  // Key present = the host closed the input, no new words accepted; absent = open.
+  // Written ONLY by the host, so database.rules.json can tell the writers apart and
+  // reject a new word once this is set. `true`-or-absent (not a boolean) for the same
+  // reason as hiddenWordIds: RTDB does not store a false/empty value.
+  closed: z.literal(true).optional(),
 })
 export type WordCloudLive = z.infer<typeof wordCloudLiveSchema>
 
