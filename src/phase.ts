@@ -14,6 +14,7 @@ import { reflectionContentSchema } from './content/reflection.js'
 import { summaryContentSchema } from './content/summary.js'
 import { unlockingContentSchema } from './content/unlocking.js'
 import { videoContentSchema } from './content/video.js'
+import { wordCloudContentSchema } from './content/wordcloud.js'
 import { worldBuildingContentSchema } from './content/worldbuilding.js'
 
 export const phaseTypeSchema = z.enum([
@@ -32,6 +33,7 @@ export const phaseTypeSchema = z.enum([
   'worldbuilding',
   'normalquiz',
   'summary',
+  'wordCloud',
 ])
 export type PhaseType = z.infer<typeof phaseTypeSchema>
 
@@ -105,6 +107,7 @@ export const phaseContentSchema = z.discriminatedUnion('type', [
   worldBuildingContentSchema,
   normalQuizContentSchema,
   summaryContentSchema,
+  wordCloudContentSchema,
 ])
 export type PhaseContent = z.infer<typeof phaseContentSchema>
 
@@ -146,5 +149,26 @@ export const phaseSchema = z.object({
   // Host-facing script (see hostScriptSchema). Host-only — stripped from the
   // player-safe bundle at publish time.
   hostScript: hostScriptSchema.optional(),
+}).superRefine((phase, ctx) => {
+  // Rules that only apply to a word cloud phase. Scoped on purpose: `type` vs
+  // `content.type` is NOT cross-checked for the other phase types, so bundles
+  // that already exist keep parsing exactly as before.
+  if (phase.type !== 'wordCloud' && phase.content.type !== 'wordCloud') return
+
+  if (phase.type !== phase.content.type) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['content', 'type'],
+      message: `content.type "${phase.content.type}" must match phase type "${phase.type}"`,
+    })
+  }
+  // A word cloud has no score: `scoring` is absent, or explicitly mode "none".
+  if (phase.scoring !== undefined && phase.scoring.mode !== 'none') {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['scoring', 'mode'],
+      message: 'a wordCloud phase has no score: omit scoring or use mode "none"',
+    })
+  }
 })
 export type Phase = z.infer<typeof phaseSchema>

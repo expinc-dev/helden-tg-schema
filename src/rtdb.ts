@@ -164,6 +164,34 @@ export const unlockingLiveSchema = z.object({
 })
 export type UnlockingLive = z.infer<typeof unlockingLiveSchema>
 
+// Word cloud phase — sessions/{sessionId}/wordCloud/{phaseId}. Keyed by phaseId
+// for the same reason as unlocking/codepiece: a session can revisit the phase type.
+// Both maps are optional because RTDB does not store an empty object, so a freshly
+// opened phase has neither. Counts shown on the host panel (submitted / hidden) are
+// derived from these two maps, never stored.
+//
+// `hiddenWordIds` is a separate node from `words` on purpose: a player writes only
+// their own word, the host writes only the hidden marker. Two nodes with two
+// different writers is something database.rules.json can express; one shared word
+// object with a host-edited `hidden` flag is not. Same MAP-not-array reasoning as
+// Team.memberIds / answeredBy.
+export const wordCloudWordSchema = z.object({
+  playerId: z.string(),
+  // Raw text as typed. Length vs the phase's maxWordLen and case-insensitive
+  // grouping are the runtime's job, not enforced by this shape.
+  text: z.string(),
+  submittedAt: z.number(), // epoch ms
+})
+export type WordCloudWord = z.infer<typeof wordCloudWordSchema>
+
+export const wordCloudLiveSchema = z.object({
+  // wordId (push id) -> submission. One player may own several entries.
+  words: z.record(z.string(), wordCloudWordSchema).optional(),
+  // wordId -> true. Key present = hidden by the host; absent = visible.
+  hiddenWordIds: z.record(z.string(), z.literal(true)).optional(),
+})
+export type WordCloudLive = z.infer<typeof wordCloudLiveSchema>
+
 // Team Mode node: /sessions/{sessionId}/teams/{teamId}. FLAT membership relation:
 // every device stays an equal players/{playerId}; this node just points at the
 // members. memberIds is the authoritative roster (owner included) and the anchor
