@@ -12,9 +12,10 @@
 import assert from 'node:assert'
 import { normalQuizContentSchema } from '../content/normalquiz.js'
 import { summaryContentSchema } from '../content/summary.js'
+import { wordCloudContentSchema } from '../content/wordcloud.js'
 import { phaseSchema, type Phase } from '../phase.js'
 import { publishedGameSchema } from '../published.js'
-import { teamSchema, liveAggregatesSchema, type Team } from '../rtdb.js'
+import { teamSchema, liveAggregatesSchema, wordCloudLiveSchema, type Team } from '../rtdb.js'
 import { teamResultSchema, type TeamResult } from '../results.js'
 
 // Fase 0 — Lobby / Pemanasan (idle, self_paced)
@@ -394,6 +395,90 @@ assert.strictEqual(phaseSchema.parse(phaseSummary).type, 'summary')
 console.log(`OK ${phaseSummary.id} (${phaseSummary.type})`)
 assert.strictEqual(summaryContentSchema.safeParse({ type: 'summary' }).success, true)
 console.log('OK summary content with no authored copy parses')
+
+// --- Word cloud ----------------------------------------------------------
+// Not from the PDF — added with the `wordCloud` phase type (5.4.0). Uses the
+// generic phase.timer (no word-cloud-specific timer field), has no scoring, and
+// has no "number of words" setting. Kept out of `allPhases` like the other
+// post-PDF phases.
+const phaseWordCloud: Phase = {
+  id: 'phase-word-cloud',
+  type: 'wordCloud',
+  title: 'Deel jouw ideeën!',
+  syncMode: 'lockstep',
+  timer: { seconds: 60, authority: 'host', autoAdvanceOnExpire: false, visibleTo: ['player', 'central'] },
+  roles: {
+    player: { enabled: true, showTimer: true },
+    central: { enabled: true, showTimer: true },
+    host: { monitor: ['presence', 'answers'] },
+  },
+  content: {
+    type: 'wordCloud',
+    prompt: {
+      en: 'Which words come to mind on this topic? Enter your answers below and share them with the group.',
+      nl: 'Welke woorden komen bij je op bij dit onderwerp? Vul je antwoorden hieronder in en deel ze met de groep.',
+    },
+    maxWordLen: 20,
+  },
+}
+assert.strictEqual(phaseSchema.parse(phaseWordCloud).type, 'wordCloud')
+console.log(`OK ${phaseWordCloud.id} (${phaseWordCloud.type}, with phase.timer)`)
+
+const okPhase = (p: unknown) => phaseSchema.safeParse(p).success
+assert.strictEqual(okPhase({ ...phaseWordCloud, timer: undefined }), true)
+console.log('OK wordCloud phase without a timer parses (timer is optional)')
+
+// No score: scoring absent or mode "none" passes, anything else is rejected.
+assert.strictEqual(okPhase({ ...phaseWordCloud, scoring: { mode: 'none' } }), true)
+assert.strictEqual(okPhase({ ...phaseWordCloud, scoring: { mode: 'participation' } }), false)
+assert.strictEqual(okPhase({ ...phaseWordCloud, scoring: { mode: 'correctness', maxPoints: 10 } }), false)
+console.log('OK wordCloud phase: scoring absent/"none" parses, other modes are rejected')
+
+// phase.type and content.type must agree for a wordCloud...
+assert.strictEqual(okPhase({ ...phaseWordCloud, type: 'idle' }), false)
+assert.strictEqual(okPhase({ ...phaseWordCloud, content: { type: 'summary' } }), false)
+// ...but that check is scoped to wordCloud: a mismatched legacy phase still parses.
+assert.strictEqual(okPhase({ ...phase0Lobby, type: 'quiz' }), true)
+console.log('OK wordCloud type/content mismatch is rejected; existing phases are not affected')
+
+// prompt: en AND nl are both required and must not be blank.
+const wcBase = phaseWordCloud.content
+assert.strictEqual(wordCloudContentSchema.safeParse(wcBase).success, true)
+assert.strictEqual(wordCloudContentSchema.safeParse({ ...wcBase, prompt: undefined }).success, false)
+assert.strictEqual(wordCloudContentSchema.safeParse({ ...wcBase, prompt: { en: 'Only English' } }).success, false)
+assert.strictEqual(wordCloudContentSchema.safeParse({ ...wcBase, prompt: { nl: 'Alleen Nederlands' } }).success, false)
+assert.strictEqual(wordCloudContentSchema.safeParse({ ...wcBase, prompt: { en: '', nl: 'x' } }).success, false)
+assert.strictEqual(wordCloudContentSchema.safeParse({ ...wcBase, prompt: { en: 'x', nl: '   ' } }).success, false)
+console.log('OK wordCloud prompt needs a non-blank en and nl')
+
+// maxWordLen: positive integer, required.
+for (const bad of [0, -3, 2.5, undefined, '20']) {
+  assert.strictEqual(wordCloudContentSchema.safeParse({ ...wcBase, maxWordLen: bad }).success, false)
+}
+assert.strictEqual(wordCloudContentSchema.safeParse({ ...wcBase, maxWordLen: 1 }).success, true)
+console.log('OK wordCloud maxWordLen must be a positive integer')
+
+// No "number of words" setting: an unknown `maxWords` key is not part of the shape
+// (zod strips it), so nothing downstream can come to depend on it.
+const strippedWc = wordCloudContentSchema.parse({ ...wcBase, maxWords: 5 })
+assert.strictEqual('maxWords' in strippedWc, false)
+console.log('OK wordCloud has no number-of-words setting')
+
+// Live node (sessions/{sessionId}/wordCloud/{phaseId}): words + host moderation.
+assert.strictEqual(wordCloudLiveSchema.safeParse({}).success, true) // RTDB drops empty objects
+assert.strictEqual(
+  wordCloudLiveSchema.safeParse({
+    words: {
+      w1: { playerId: 'p-1', text: 'Samenwerking', submittedAt: 1730000001000 },
+      w2: { playerId: 'p-1', text: 'Veiligheid', submittedAt: 1730000002000 }, // one player, several words
+    },
+    hiddenWordIds: { w2: true },
+  }).success,
+  true,
+)
+assert.strictEqual(wordCloudLiveSchema.safeParse({ words: { w1: { playerId: 'p-1', submittedAt: 1 } } }).success, false)
+assert.strictEqual(wordCloudLiveSchema.safeParse({ hiddenWordIds: { w1: false } }).success, false)
+console.log('OK wordCloud live node (words + hiddenWordIds) validates')
 
 // --- Team Mode ---------------------------------------------------------
 // Not from the PDF (the walkthrough predates the team model) — added per the
