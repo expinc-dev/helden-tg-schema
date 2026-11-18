@@ -255,9 +255,12 @@ export const liveAggregatesSchema = z.object({
   // (team modes). The submit transaction bumps answeredCount ONLY when the
   // marker was absent, so 3 devices in the same team = 1 count.
   answeredBy: z.record(z.string(), z.record(z.string(), z.literal(true))).optional(),
-  // 5.6.0: score of each quiz phase ("block"), per key: { phaseId → { keyId → points } }
+  // 5.6.0 / 5.7.0: score of each block, per key: { blockId → { keyId → points } }
   // where keyId is playerId (individual) or teamId (team modes), same keying as
-  // `scores` / `teamScores`. Shown to the players when the quiz has showBlockScore.
+  // `scores` / `teamScores`. blockId is `phase.blockId`, or the phase's own id when
+  // the phase has none (so a lone quiz phase is a block of one). A block that spans
+  // several phases (quiz + word clouds) sums them. Shown to the players when a quiz
+  // phase of the block has showBlockScore.
   blockScores: z.record(z.string(), z.record(z.string(), z.number())).optional(),
   // Quiz answer distribution: { questionId → { optionId → count } }. Written by
   // submitAnswer transaction so central/host can show live bar charts per option.

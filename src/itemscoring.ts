@@ -10,7 +10,8 @@ import { z } from 'zod'
 // The runtime counts "right items" and "wrong items" for the question type that
 // carries this (e.g. for `multi_choice`: a selected option that is in `correctIds`
 // is right, a selected option that is not in `correctIds` is wrong; options left
-// unselected count for neither). This file is shape + validation only; the
+// unselected count for neither; for `order`: an item at its authored position is
+// right, an item anywhere else is wrong). This file is shape + validation only; the
 // arithmetic lives in the runtime's scoring module.
 //
 //  - per_item: each right item earns `correctPoints`; each wrong item costs

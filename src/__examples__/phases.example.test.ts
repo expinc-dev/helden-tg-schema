@@ -800,6 +800,24 @@ assert.strictEqual(okQuestion({ ...qYesNoReason, choices: [{ id: 'c', label: 'Ja
 assert.strictEqual(okQuestion({ ...qYesNoReason, completionPoints: -1 }), false)
 console.log('OK yes_no_reason question (3 choices, completionPoints)')
 
+// 2861 (5.7.0) order with item scoring — block 3 q5 / block 4 q4: 1 point per
+// item at its right position. Without `scoring` it parses as before.
+const qOrder = {
+  qType: 'order',
+  prompt,
+  items: [
+    { id: 'o-1', label: 'Feedback geven' },
+    { id: 'o-2', label: 'Melden incident' },
+    { id: 'o-3', label: 'Overplaatsing' },
+  ],
+  scoring: { rule: 'per_item', correctPoints: 1 },
+}
+assert.strictEqual(okQuestion(qOrder), true)
+assert.strictEqual(okQuestion({ ...qOrder, scoring: undefined }), true)
+assert.strictEqual(okQuestion({ ...qOrder, scoring: { rule: 'tiers', tiers: [{ minCorrect: 2, points: 2 }] } }), true)
+assert.strictEqual(okQuestion({ ...qOrder, scoring: { rule: 'per_item' } }), false)
+console.log('OK order question with item scoring (1 point per right position)')
+
 // The new types also work together in one quiz phase, mixed with an old one.
 assert.strictEqual(
   okPhase(quizPhaseWith([qMatching, qNumberRange, qSwipe, qBlurred, qOpenList, qYesNoReason, { qType: 'single_choice', prompt, options: [{ id: 'a', label: 'A' }], correctId: 'a' }])),
@@ -859,6 +877,30 @@ assert.strictEqual(wordCloudLiveSchema.safeParse({ blurRemoved: true }).success,
 assert.strictEqual(wordCloudLiveSchema.safeParse({ blurRemoved: false }).success, false)
 assert.strictEqual(liveAggregatesSchema.safeParse({ blockScores: { 'phase-kennisquiz-blok-1': { 'team-a': 7 } } }).success, true)
 console.log('OK quizmaster tools: blockNotes, quizHost live node, blurRemoved, blockScores')
+
+// --- Block grouping (5.7.0): phases that share a blockId are one block -------
+// Block 1 of the Kennisquiz = quiz phase + word cloud phase, one block score.
+const blockQuiz = { ...phaseKennisquizBlock, blockId: 'blok-1' }
+const blockCloud = { ...phaseWordCloudBlur, id: 'phase-kennisquiz-blok-1-cloud', blockId: 'blok-1' }
+assert.strictEqual(okPhase(blockQuiz), true)
+assert.strictEqual(okPhase(blockCloud), true)
+assert.strictEqual(okPhase({ ...phaseKennisquizBlock, blockId: '' }), false)
+assert.strictEqual(okPhase({ ...phaseKennisquizBlock, blockId: '   ' }), false)
+assert.strictEqual(okPhase(phaseKennisquizBlock), true) // absent = its own block, as before
+assert.strictEqual(
+  publishedGameSchema.safeParse({
+    id: 'v-block',
+    gameId: 'g-kennisquiz',
+    schemaVersion: '5.7.0',
+    title: 'Kennisquiz',
+    phaseOrder: [blockQuiz.id, blockCloud.id],
+    phases: { [blockQuiz.id]: blockQuiz, [blockCloud.id]: blockCloud },
+    publishedAt: Date.now(),
+    publishedBy: 'u-admin',
+  }).success,
+  true,
+)
+console.log('OK block grouping: phases sharing a blockId parse, a blank blockId is rejected')
 
 // Prove a fully-resolved bundle (what tg-cms publishes and tg-runtime loads) also validates.
 publishedGameSchema.parse({

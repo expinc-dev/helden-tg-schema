@@ -153,6 +153,17 @@ export const phaseSchema = z.object({
   // Host-facing script (see hostScriptSchema). Host-only — stripped from the
   // player-safe bundle at publish time.
   hostScript: hostScriptSchema.optional(),
+  // 5.7.0: groups phases into one scored block (a Kennisquiz block is several
+  // phases: quiz phases and word clouds). Phases that share a `blockId` form one
+  // block; the block score of a team (or player) is the sum of its scores over those
+  // phases, kept in `liveAggregates.blockScores[blockId]`. The runtime shows it after
+  // the block's last phase in `phaseOrder` when any phase of the block has
+  // `showBlockScore` (quiz content). Absent = the phase is its own block, keyed by
+  // its phase id, exactly as before. Any non-blank string works; the CMS generates it.
+  blockId: z
+    .string()
+    .refine((s) => s.trim().length > 0, { message: 'must not be blank' })
+    .optional(),
 }).superRefine((phase, ctx) => {
   // Rules that only apply to a word cloud phase. Scoped on purpose: `type` vs
   // `content.type` is NOT cross-checked for the other phase types, so bundles

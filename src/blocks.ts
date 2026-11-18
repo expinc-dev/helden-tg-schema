@@ -50,7 +50,17 @@ export type Question =
   // Formalized out of tg-pilot's microlearning-only cast-at-the-boundary hack
   // (OrderQuestion.tsx / ImageSequenceQuestion.tsx — `as unknown as Question`).
   // Drag-to-reorder a fixed list.
-  | { qType: 'order'; prompt: Block[]; items: { id: string; label: string }[] }
+  //
+  // `scoring` (5.7.0): optional per-item rule where a "right item" is an item placed
+  // at its authored position (1 point per right position in the Kennisquiz) and a
+  // "wrong item" is one placed elsewhere; `tiers` count right positions. Absent =
+  // the phase-level ScoringConfig applies as before (whole order must be right).
+  | {
+      qType: 'order'
+      prompt: Block[]
+      items: { id: string; label: string }[]
+      scoring?: ItemScoring
+    }
   // Drag pool images into numbered slots (slots start empty, unlike 'order'
   // which reorders a pre-placed list).
   //
@@ -299,6 +309,7 @@ export const questionSchema: z.ZodType<Question> = z.lazy(() =>
       qType: z.literal('order'),
       prompt: z.array(blockSchema),
       items: z.array(z.object({ id: z.string(), label: z.string() })),
+      scoring: itemScoringSchema.optional(),
     }),
     z.object({
       qType: z.literal('image_sequence'),

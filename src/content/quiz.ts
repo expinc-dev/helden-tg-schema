@@ -7,8 +7,9 @@ export const quizContentSchema = z.object({
   mode: z.enum(['on_device', 'central_prompt']),
   questions: z.array(questionSchema),
   revealAnswers: z.boolean(),
-  // 5.6.0: show the summed score of this quiz phase (a Kennisquiz "block") to the
-  // players. Absent/false = no block score, as before.
+  // 5.6.0: show the score of this quiz's block (a Kennisquiz block) to the players.
+  // The block is the group of phases that share `phase.blockId` (5.7.0), or just this
+  // phase when it has none. Absent/false = no block score, as before.
   showBlockScore: z.boolean().optional(),
   // Answering phase: options appear on player devices.
   answeringTimerSeconds: z.number().int().positive().optional(),
