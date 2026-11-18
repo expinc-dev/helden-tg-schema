@@ -15,7 +15,7 @@ import { summaryContentSchema } from '../content/summary.js'
 import { wordCloudContentSchema } from '../content/wordcloud.js'
 import { phaseSchema, type Phase } from '../phase.js'
 import { publishedGameSchema } from '../published.js'
-import { teamSchema, liveAggregatesSchema, wordCloudLiveSchema, type Team } from '../rtdb.js'
+import { teamSchema, liveAggregatesSchema, wordCloudLiveSchema, quizHostLiveSchema, type Team } from '../rtdb.js'
 import { teamResultSchema, type TeamResult } from '../results.js'
 
 // Fase 0 — Lobby / Pemanasan (idle, self_paced)
@@ -594,6 +594,271 @@ assert.strictEqual(
   assembled,
 )
 console.log(`OK fase 7 fragments assemble into "${assembled}" matching codeinput.expected`)
+
+// --- Kennisquiz item scoring (5.6.0, BRIGHT-2861) -------------------------
+// Examples from the COA Kennisquiz V3: "Keten" (+1 right / -1 wrong, block 1 q3)
+// and the abbreviation meanings (tiers 5 -> 3, 8 -> 5, all 14 -> 7, block 4 q5).
+const phaseKennisquizBlock: Phase = {
+  id: 'phase-kennisquiz-blok-1',
+  type: 'quiz',
+  title: 'COA? COA!',
+  syncMode: 'lockstep',
+  teamMode: 'team_leader_only',
+  scoring: { mode: 'correctness', maxPoints: 2 },
+  roles: {
+    player: { enabled: true, showTimer: true },
+    central: { enabled: true, showTimer: true },
+    host: { monitor: ['answers', 'scores'] },
+  },
+  content: {
+    type: 'quiz',
+    mode: 'central_prompt',
+    revealAnswers: true,
+    showBlockScore: true,
+    questions: [
+      {
+        qType: 'multi_choice',
+        prompt: [{ kind: 'text', markdown: 'Geef aan wat jullie taken zijn.' }],
+        options: [
+          { id: 'o-veilige-opvang', label: 'Veilige opvang' },
+          { id: 'o-begeleiding', label: 'Begeleiding' },
+          { id: 'o-studenten', label: 'Studenten begeleiden' },
+        ],
+        correctIds: ['o-veilige-opvang', 'o-begeleiding'],
+        scoring: { rule: 'per_item', correctPoints: 1, wrongPenalty: 1 },
+      },
+      {
+        qType: 'multi_choice',
+        prompt: [{ kind: 'text', markdown: 'Wat betekenen de afkortingen?' }],
+        options: [
+          { id: 'o-1', label: 'COL' },
+          { id: 'o-2', label: 'DOL' },
+        ],
+        correctIds: ['o-1', 'o-2'],
+        scoring: {
+          rule: 'tiers',
+          tiers: [
+            { minCorrect: 5, points: 3 },
+            { minCorrect: 8, points: 5 },
+            { minCorrect: 14, points: 7 },
+          ],
+        },
+      },
+    ],
+  },
+}
+assert.strictEqual(phaseSchema.parse(phaseKennisquizBlock).type, 'quiz')
+console.log(`OK ${phaseKennisquizBlock.id} (per_item +1/-1, tiers, showBlockScore)`)
+
+// Rules: shape is checked, so a bad rule never reaches a published bundle.
+const withScoring = (scoring: unknown): unknown => ({
+  ...phaseKennisquizBlock,
+  content: {
+    ...phaseKennisquizBlock.content,
+    questions: [{ ...(phaseKennisquizBlock.content as { questions: object[] }).questions[0], scoring }],
+  },
+})
+assert.strictEqual(okPhase(withScoring({ rule: 'per_item', correctPoints: 1 })), true)
+assert.strictEqual(okPhase(withScoring({ rule: 'per_item', correctPoints: 1, wrongPenalty: 1, allowNegativeTotal: true })), true)
+assert.strictEqual(okPhase(withScoring({ rule: 'per_item', correctPoints: 1, wrongPenalty: -1 })), false)
+assert.strictEqual(okPhase(withScoring({ rule: 'per_item' })), false)
+assert.strictEqual(okPhase(withScoring({ rule: 'tiers', tiers: [] })), false)
+assert.strictEqual(okPhase(withScoring({ rule: 'tiers', tiers: [{ minCorrect: 5, points: 3 }, { minCorrect: 5, points: 4 }] })), false)
+assert.strictEqual(okPhase(withScoring({ rule: 'tiers', tiers: [{ minCorrect: 8, points: 5 }, { minCorrect: 5, points: 3 }] })), false)
+assert.strictEqual(okPhase(withScoring({ rule: 'tiers', tiers: [{ minCorrect: 0, points: 1 }] })), false)
+assert.strictEqual(okPhase(withScoring({ rule: 'unknown' })), false)
+console.log('OK item scoring: per_item and tiers validate, malformed rules are rejected')
+
+// Backward compatible: a multi_choice without `scoring` and a quiz without
+// `showBlockScore` parse exactly as before 5.6.0.
+assert.strictEqual(okPhase(withScoring(undefined)), true)
+console.log('OK question without item scoring still parses (existing bundles unaffected)')
+
+// --- Kennisquiz question types (5.6.0, BRIGHT-2853 .. 2859) ---------------
+// One example per type, taken from the COA Kennisquiz V3 document.
+const quizPhaseWith = (questions: unknown[], extra: object = {}): unknown => ({
+  ...phaseKennisquizBlock,
+  content: { ...phaseKennisquizBlock.content, questions },
+  ...extra,
+})
+const okQuestion = (q: unknown) => okPhase(quizPhaseWith([q]))
+const prompt = [{ kind: 'text', markdown: 'Vraag' }]
+
+// 2853 matching — block 1 q5 (6 opvangvormen <-> afkorting), block 2 q3 (+1 / -1).
+const qMatching = {
+  qType: 'matching',
+  prompt,
+  items: [
+    { id: 'i-pol', label: 'In afwachting van en tijdens asielprocedure' },
+    { id: 'i-azc', label: 'Na afloop en tijdens verlengde asielprocedure' },
+  ],
+  targets: [
+    { id: 't-pol', label: 'POL' },
+    { id: 't-azc', label: 'AZC' },
+  ],
+  matches: [
+    { itemId: 'i-pol', targetId: 't-pol' },
+    { itemId: 'i-azc', targetId: 't-azc' },
+  ],
+  scoring: { rule: 'per_item', correctPoints: 1, wrongPenalty: 1 },
+}
+assert.strictEqual(okQuestion(qMatching), true)
+assert.strictEqual(okQuestion({ ...qMatching, items: [] }), false)
+assert.strictEqual(okQuestion({ ...qMatching, targets: [qMatching.targets[0]] }), false)
+console.log('OK matching question (pairs, +1/-1) and its rejects')
+
+// 2854 number_range — block 4 q1 (each number has a lowest and highest right value).
+const qNumberRange = {
+  qType: 'number_range',
+  prompt,
+  fields: [
+    { id: 'f-vrijwilligers', label: 'Vrijwilligers', min: 1970, max: 2170 },
+    { id: 'f-extern', label: 'Externe medewerkers', min: 750, max: 850 },
+    { id: 'f-dienst', label: 'Medewerkers in dienst', min: 7500, max: 8300 },
+    { id: 'f-totaal', label: 'Totaal', min: 10500, max: 11000 },
+  ],
+  scoring: { rule: 'per_item', correctPoints: 1 },
+}
+assert.strictEqual(okQuestion(qNumberRange), true)
+assert.strictEqual(okQuestion({ ...qNumberRange, fields: [{ id: 'f', label: 'x', min: 10, max: 5 }] }), false)
+assert.strictEqual(okQuestion({ ...qNumberRange, fields: [{ id: 'f', label: 'x' }] }), true) // draft: no range yet
+assert.strictEqual(okQuestion({ ...qNumberRange, fields: [] }), false)
+console.log('OK number_range question (min <= max, draft without range allowed)')
+
+// 2855 swipe — block 5 "Even appen" (6 cards, tick or cross).
+const qSwipe = {
+  qType: 'swipe',
+  prompt,
+  sideLabels: { left: 'Kruisje', right: 'Vinkje' },
+  cards: [
+    { id: 'c-1', label: 'Een screenshot van een datalek delen in een groepsapp', correctSide: 'left' },
+    { id: 'c-2', label: 'Vergrendel je scherm', correctSide: 'right' },
+  ],
+  scoring: { rule: 'per_item', correctPoints: 1 },
+}
+assert.strictEqual(okQuestion(qSwipe), true)
+assert.strictEqual(okQuestion({ ...qSwipe, cards: [{ id: 'c', correctSide: 'up' }] }), false)
+assert.strictEqual(okQuestion({ ...qSwipe, cards: [] }), false)
+console.log('OK swipe question (cards with a right side)')
+
+// 2856 blurred_sentences — block 1 q6 (Jong COA). Hit words sit behind {{hitId}}.
+const qBlurred = {
+  qType: 'blurred_sentences',
+  prompt,
+  sentences: [
+    {
+      id: 's-1',
+      text: 'Jong COA is voor iedereen onder de {{h-36}} jaar.',
+      hits: [{ id: 'h-36', word: '36' }],
+    },
+    {
+      id: 's-2',
+      text: 'De 3 V’s: {{h-v1}}, {{h-v2}} en {{h-v3}}.',
+      hits: [
+        { id: 'h-v1', word: 'versterken' },
+        { id: 'h-v2', word: 'verbinden' },
+        { id: 'h-v3', word: 'verdiepen' },
+      ],
+    },
+  ],
+  scoring: { rule: 'per_item', correctPoints: 1 },
+}
+assert.strictEqual(okQuestion(qBlurred), true)
+assert.strictEqual(okQuestion({ ...qBlurred, sentences: [] }), false)
+assert.strictEqual(okQuestion({ ...qBlurred, sentences: [{ id: 's', text: 'x' }] }), false)
+console.log('OK blurred_sentences question (hit words behind {{hitId}} markers)')
+
+// 2858 open_list — block 2 q4 (top 5, 5 points per filled answer).
+const qOpenList = {
+  qType: 'open_list',
+  prompt,
+  fieldCount: 5,
+  fieldLabel: 'Energievreter',
+  maxLen: 80,
+  scoring: { rule: 'per_item', correctPoints: 5 },
+}
+assert.strictEqual(okQuestion(qOpenList), true)
+assert.strictEqual(okQuestion({ ...qOpenList, fieldCount: 0 }), false)
+assert.strictEqual(okQuestion({ ...qOpenList, scoring: undefined }), true) // no auto points
+console.log('OK open_list question (5 fields, 5 points each)')
+
+// 2859 yes_no_reason — block 3 q1 (3 choices + reason, 2 points for filling in).
+const qYesNoReason = {
+  qType: 'yes_no_reason',
+  prompt,
+  choices: [
+    { id: 'c-ja', label: 'Ja' },
+    { id: 'c-nee', label: 'Nee' },
+    { id: 'c-oneens', label: 'We zijn het niet eens' },
+  ],
+  reasonLabel: 'Motiveer je antwoord',
+  reasonMaxLen: 300,
+  completionPoints: 2,
+}
+assert.strictEqual(okQuestion(qYesNoReason), true)
+assert.strictEqual(okQuestion({ ...qYesNoReason, choices: [{ id: 'c', label: 'Ja' }] }), false)
+assert.strictEqual(okQuestion({ ...qYesNoReason, completionPoints: -1 }), false)
+console.log('OK yes_no_reason question (3 choices, completionPoints)')
+
+// The new types also work together in one quiz phase, mixed with an old one.
+assert.strictEqual(
+  okPhase(quizPhaseWith([qMatching, qNumberRange, qSwipe, qBlurred, qOpenList, qYesNoReason, { qType: 'single_choice', prompt, options: [{ id: 'a', label: 'A' }], correctId: 'a' }])),
+  true,
+)
+console.log('OK all Kennisquiz question types in one quiz phase')
+
+// 2857 word cloud with blur + points by word count (1-3 = 1, 4-6 = 2, 7+ = 3).
+const phaseWordCloudBlur = {
+  ...phaseWordCloud,
+  scoring: { mode: 'participation' },
+  content: {
+    ...phaseWordCloud.content,
+    blurred: true,
+    pointsByWordCount: [
+      { minWords: 1, points: 1 },
+      { minWords: 4, points: 2 },
+      { minWords: 7, points: 3 },
+    ],
+  },
+}
+assert.strictEqual(okPhase(phaseWordCloudBlur), true)
+// tiers need mode "participation"; tiers in the wrong order or empty are rejected
+assert.strictEqual(okPhase({ ...phaseWordCloudBlur, scoring: undefined }), false)
+assert.strictEqual(okPhase({ ...phaseWordCloudBlur, scoring: { mode: 'correctness', maxPoints: 3 } }), false)
+assert.strictEqual(
+  okPhase({ ...phaseWordCloudBlur, content: { ...phaseWordCloudBlur.content, pointsByWordCount: [] } }),
+  false,
+)
+assert.strictEqual(
+  okPhase({
+    ...phaseWordCloudBlur,
+    content: { ...phaseWordCloudBlur.content, pointsByWordCount: [{ minWords: 4, points: 2 }, { minWords: 1, points: 1 }] },
+  }),
+  false,
+)
+// blur alone changes nothing about scoring: still no score allowed
+assert.strictEqual(okPhase({ ...phaseWordCloud, content: { ...phaseWordCloud.content, blurred: true } }), true)
+assert.strictEqual(
+  okPhase({ ...phaseWordCloud, scoring: { mode: 'participation' }, content: { ...phaseWordCloud.content, blurred: true } }),
+  false,
+)
+console.log('OK wordCloud with blur + pointsByWordCount (old word clouds still have no score)')
+
+// 2860 quizmaster tools: block notes on the host, live reveal state, block scores.
+assert.strictEqual(
+  okPhase({
+    ...phaseKennisquizBlock,
+    hostScript: { blockNotes: [{ kind: 'text', markdown: 'Na blok: uitleg verhaal Aeneas.' }] },
+  }),
+  true,
+)
+assert.strictEqual(quizHostLiveSchema.safeParse({}).success, true)
+assert.strictEqual(quizHostLiveSchema.safeParse({ correctShown: { '0': true }, teamAnswersShownFor: '3' }).success, true)
+assert.strictEqual(quizHostLiveSchema.safeParse({ correctShown: { '0': false } }).success, false)
+assert.strictEqual(wordCloudLiveSchema.safeParse({ blurRemoved: true }).success, true)
+assert.strictEqual(wordCloudLiveSchema.safeParse({ blurRemoved: false }).success, false)
+assert.strictEqual(liveAggregatesSchema.safeParse({ blockScores: { 'phase-kennisquiz-blok-1': { 'team-a': 7 } } }).success, true)
+console.log('OK quizmaster tools: blockNotes, quizHost live node, blurRemoved, blockScores')
 
 // Prove a fully-resolved bundle (what tg-cms publishes and tg-runtime loads) also validates.
 publishedGameSchema.parse({

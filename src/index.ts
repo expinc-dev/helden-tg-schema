@@ -1,4 +1,5 @@
 export * from './version.js'
+export * from './itemscoring.js'
 export * from './blocks.js'
 export * from './phase.js'
 export * from './published.js'

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { itemScoringSchema, type ItemScoring } from './itemscoring.js'
 
 // Block ↔ Question is mutually recursive (a question's prompt is Block[],
 // and a Block can be a question). We declare the TS types first, then annotate
@@ -23,7 +24,15 @@ export type ScanPoints = { correct: number; wrongPenalty: number }
 
 export type Question =
   | { qType: 'single_choice'; prompt: Block[]; options: Choice[]; correctId?: string }
-  | { qType: 'multi_choice'; prompt: Block[]; options: Choice[]; correctIds?: string[] }
+  // `scoring` (5.6.0): optional per-item rule (+/- per option, or tiers by number
+  // of right options). Absent = the phase-level ScoringConfig applies as before.
+  | {
+      qType: 'multi_choice'
+      prompt: Block[]
+      options: Choice[]
+      correctIds?: string[]
+      scoring?: ItemScoring
+    }
   | { qType: 'open_text'; prompt: Block[]; maxLen?: number; rubricHint?: string }
   | {
       qType: 'scale'
@@ -89,6 +98,76 @@ export type Question =
       }[]
       unlockAfterCases: number
     }
+  // ---- 5.6.0: COA Kennisquiz question types (BRIGHT-2853 .. 2859) ----------
+  // Player links every `item` to one of the `targets`. Several items may share one
+  // target (e.g. 8 topics over 4 batteries). `matches` is the ANSWER KEY (itemId ->
+  // targetId, one entry per item): author-time only, stripped from the player-safe
+  // bundle. Answer value (runtime): { [itemId]: targetId }. Scoring: `per_item`
+  // counts a right pair as a right item and a wrong link as a wrong item.
+  | {
+      qType: 'matching'
+      prompt: Block[]
+      items: MatchItem[]
+      targets: MatchItem[]
+      matches?: { itemId: string; targetId: string }[]
+      scoring?: ItemScoring
+    }
+  // One numeric field per `fields` entry; a number is right when it lies in
+  // [min, max] inclusive. min/max are the ANSWER KEY, stripped from the player-safe
+  // bundle. Answer value (runtime): { [fieldId]: number }. `per_item` counts each
+  // number inside its range as a right item (a wrong number costs the penalty, if any).
+  | { qType: 'number_range'; prompt: Block[]; fields: NumberRangeField[]; scoring?: ItemScoring }
+  // Cards swiped to one of two sides. `correctSide` per card is the ANSWER KEY,
+  // stripped from the player-safe bundle. `sideLabels` are the two side captions
+  // (e.g. a cross / a tick). Answer value (runtime): { [cardId]: 'left' | 'right' }.
+  | {
+      qType: 'swipe'
+      prompt: Block[]
+      cards: SwipeCard[]
+      sideLabels?: { left: string; right: string }
+      scoring?: ItemScoring
+    }
+  // Sentences shown blurred; the player finds the "hit" words. `text` holds the
+  // sentence with a `{{hitId}}` marker where each hit word sits, and `hits` maps
+  // hitId -> word. `hits[].word` is the ANSWER KEY: the player-safe bundle keeps the
+  // `{{hitId}}` markers but drops the words, so the words are not in the file the
+  // players get. Answer value (runtime): { [sentenceId]: string[] } = hit ids found.
+  // `per_item` counts each found hit as a right item.
+  | {
+      qType: 'blurred_sentences'
+      prompt: Block[]
+      sentences: BlurredSentence[]
+      scoring?: ItemScoring
+    }
+  // A list of `fieldCount` free-text answers (top 5, a list of themes). There is no
+  // right or wrong and no text check: each FILLED field is one "right item", so
+  // `per_item` { correctPoints: 5 } = 5 points per filled answer. Team answers are
+  // shown to the room by the quizmaster (see QuizHostLive).
+  // Answer value (runtime): string[] (length <= fieldCount).
+  | {
+      qType: 'open_list'
+      prompt: Block[]
+      fieldCount: number
+      fieldLabel?: string
+      maxLen?: number
+      scoring?: ItemScoring
+    }
+  // A choice (yes / no / ... ) plus a written reason. No right or wrong.
+  // `completionPoints` are given when BOTH the choice and the reason are filled.
+  // Answer value (runtime): { choiceId: string; reason: string }.
+  | {
+      qType: 'yes_no_reason'
+      prompt: Block[]
+      choices: Choice[]
+      reasonLabel?: string
+      reasonMaxLen?: number
+      completionPoints?: number
+    }
+
+export type MatchItem = { id: string; label: string; mediaId?: string }
+export type NumberRangeField = { id: string; label: string; unit?: string; min?: number; max?: number }
+export type SwipeCard = { id: string; label?: string; mediaId?: string; correctSide?: 'left' | 'right' }
+export type BlurredSentence = { id: string; text: string; hits: { id: string; word: string }[] }
 
 export type Block =
   | { kind: 'text'; markdown: string }
@@ -143,6 +222,40 @@ export const choiceSchema: z.ZodType<Choice> = z.object({
   otherPlaceholder: z.string().optional(),
 })
 
+export const matchItemSchema: z.ZodType<MatchItem> = z.object({
+  id: z.string(),
+  label: z.string(),
+  mediaId: z.string().optional(),
+})
+
+// min <= max when both are authored. Either may be absent while a draft is being
+// written (they are the answer key, like single_choice.correctId).
+export const numberRangeFieldSchema: z.ZodType<NumberRangeField> = z
+  .object({
+    id: z.string(),
+    label: z.string(),
+    unit: z.string().optional(),
+    min: z.number().optional(),
+    max: z.number().optional(),
+  })
+  .refine((f) => f.min === undefined || f.max === undefined || f.min <= f.max, {
+    message: 'min must be less than or equal to max',
+    path: ['min'],
+  })
+
+export const swipeCardSchema: z.ZodType<SwipeCard> = z.object({
+  id: z.string(),
+  label: z.string().optional(),
+  mediaId: z.string().optional(),
+  correctSide: z.enum(['left', 'right']).optional(),
+})
+
+export const blurredSentenceSchema: z.ZodType<BlurredSentence> = z.object({
+  id: z.string(),
+  text: z.string(),
+  hits: z.array(z.object({ id: z.string(), word: z.string() })),
+})
+
 export const scanPointsSchema: z.ZodType<ScanPoints> = z.object({
   correct: z.number().nonnegative(),
   wrongPenalty: z.number().nonnegative(),
@@ -161,6 +274,7 @@ export const questionSchema: z.ZodType<Question> = z.lazy(() =>
       prompt: z.array(blockSchema),
       options: z.array(choiceSchema),
       correctIds: z.array(z.string()).optional(),
+      scoring: itemScoringSchema.optional(),
     }),
     z.object({
       qType: z.literal('open_text'),
@@ -225,6 +339,49 @@ export const questionSchema: z.ZodType<Question> = z.lazy(() =>
         }),
       ).min(2),
       unlockAfterCases: z.number().int().positive(),
+    }),
+    z.object({
+      qType: z.literal('matching'),
+      prompt: z.array(blockSchema),
+      items: z.array(matchItemSchema).min(1),
+      targets: z.array(matchItemSchema).min(2),
+      matches: z.array(z.object({ itemId: z.string(), targetId: z.string() })).optional(),
+      scoring: itemScoringSchema.optional(),
+    }),
+    z.object({
+      qType: z.literal('number_range'),
+      prompt: z.array(blockSchema),
+      fields: z.array(numberRangeFieldSchema).min(1),
+      scoring: itemScoringSchema.optional(),
+    }),
+    z.object({
+      qType: z.literal('swipe'),
+      prompt: z.array(blockSchema),
+      cards: z.array(swipeCardSchema).min(1),
+      sideLabels: z.object({ left: z.string(), right: z.string() }).optional(),
+      scoring: itemScoringSchema.optional(),
+    }),
+    z.object({
+      qType: z.literal('blurred_sentences'),
+      prompt: z.array(blockSchema),
+      sentences: z.array(blurredSentenceSchema).min(1),
+      scoring: itemScoringSchema.optional(),
+    }),
+    z.object({
+      qType: z.literal('open_list'),
+      prompt: z.array(blockSchema),
+      fieldCount: z.number().int().positive(),
+      fieldLabel: z.string().optional(),
+      maxLen: z.number().int().positive().optional(),
+      scoring: itemScoringSchema.optional(),
+    }),
+    z.object({
+      qType: z.literal('yes_no_reason'),
+      prompt: z.array(blockSchema),
+      choices: z.array(choiceSchema).min(2),
+      reasonLabel: z.string().optional(),
+      reasonMaxLen: z.number().int().positive().optional(),
+      completionPoints: z.number().nonnegative().optional(),
     }),
   ]),
 )

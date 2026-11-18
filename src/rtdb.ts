@@ -194,8 +194,28 @@ export const wordCloudLiveSchema = z.object({
   // reject a new word once this is set. `true`-or-absent (not a boolean) for the same
   // reason as hiddenWordIds: RTDB does not store a false/empty value.
   closed: z.literal(true).optional(),
+  // 5.6.0: key present = the host removed the blur of a `blurred` word cloud; absent
+  // = still blurred. Host-only writer, `true`-or-absent like `closed`.
+  blurRemoved: z.literal(true).optional(),
 })
 export type WordCloudLive = z.infer<typeof wordCloudLiveSchema>
+
+// Quizmaster state for a quiz phase — sessions/{sessionId}/quizHost/{phaseId}
+// (5.6.0, COA Kennisquiz). Written ONLY by the host; central and host read it. The
+// correct answers themselves are NOT stored here: central renders them from the
+// full bundle (host + central get it, players never do), this node only says when.
+// Keys are the question ids the runtime already uses for `distribution` and
+// `answeredBy` (the question's index as a string). Every field is optional because
+// RTDB does not store an empty object or a false value.
+export const quizHostLiveSchema = z.object({
+  // questionId -> true: the host pressed "show correct answers" for that question,
+  // so central shows them.
+  correctShown: z.record(z.string(), z.literal(true)).optional(),
+  // questionId whose per-team answer lists central shows right now (the host picks
+  // one); absent = central shows no team answers.
+  teamAnswersShownFor: z.string().optional(),
+})
+export type QuizHostLive = z.infer<typeof quizHostLiveSchema>
 
 // Team Mode node: /sessions/{sessionId}/teams/{teamId}. FLAT membership relation:
 // every device stays an equal players/{playerId}; this node just points at the
@@ -235,6 +255,10 @@ export const liveAggregatesSchema = z.object({
   // (team modes). The submit transaction bumps answeredCount ONLY when the
   // marker was absent, so 3 devices in the same team = 1 count.
   answeredBy: z.record(z.string(), z.record(z.string(), z.literal(true))).optional(),
+  // 5.6.0: score of each quiz phase ("block"), per key: { phaseId → { keyId → points } }
+  // where keyId is playerId (individual) or teamId (team modes), same keying as
+  // `scores` / `teamScores`. Shown to the players when the quiz has showBlockScore.
+  blockScores: z.record(z.string(), z.record(z.string(), z.number())).optional(),
   // Quiz answer distribution: { questionId → { optionId → count } }. Written by
   // submitAnswer transaction so central/host can show live bar charts per option.
   distribution: z.record(z.string(), z.record(z.string(), z.number().int().nonnegative())).optional(),

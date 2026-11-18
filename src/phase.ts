@@ -124,6 +124,10 @@ export const hostScriptSchema = z.object({
   anchorScript: z.array(blockSchema).optional(),
   sharingPrompts: z.array(blockSchema).optional(),
   improvMarker: z.boolean().optional(),
+  // 5.6.0: the quizmaster's notes for the block (the Kennisquiz "Na blok ..." text),
+  // shown on the host screen. Host-only like the rest of hostScript: stripped from
+  // the player-safe bundle.
+  blockNotes: z.array(blockSchema).optional(),
 })
 export type HostScript = z.infer<typeof hostScriptSchema>
 
@@ -163,7 +167,19 @@ export const phaseSchema = z.object({
     })
   }
   // A word cloud has no score: `scoring` is absent, or explicitly mode "none".
-  if (phase.scoring !== undefined && phase.scoring.mode !== 'none') {
+  // Exception (5.6.0): a word cloud with `content.pointsByWordCount` scores by word
+  // count, and then `scoring.mode` must be "participation" (the tiers decide the
+  // points). Without tiers, "participation" is rejected exactly as before.
+  const tiered = phase.content.type === 'wordCloud' && phase.content.pointsByWordCount !== undefined
+  if (tiered) {
+    if (phase.scoring?.mode !== 'participation') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['scoring', 'mode'],
+        message: 'a wordCloud with pointsByWordCount needs scoring.mode "participation"',
+      })
+    }
+  } else if (phase.scoring !== undefined && phase.scoring.mode !== 'none') {
     ctx.addIssue({
       code: 'custom',
       path: ['scoring', 'mode'],
