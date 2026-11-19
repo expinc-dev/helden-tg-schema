@@ -902,6 +902,174 @@ assert.strictEqual(
 )
 console.log('OK block grouping: phases sharing a blockId parse, a blank blockId is rejected')
 
+// --- Final Kennisquiz document (5.8.0) --------------------------------------
+// One quiz phase with every 5.8.0 field, from the final "flow doc quiz game".
+const t = (markdown: string) => [{ kind: 'text' as const, markdown }]
+const phaseKennisquizFinal: Phase = {
+  ...phaseKennisquizBlock,
+  id: 'phase-kennisquiz-final',
+  blockId: 'ronde-2',
+  content: {
+    type: 'quiz',
+    mode: 'central_prompt',
+    revealAnswers: true,
+    reviewTiming: 'afterRound',
+    questions: [
+      // Ronde 2 vraag 3: 8 topics onto 4 batteries, exactly 2 each, +1/-1, random order.
+      {
+        qType: 'matching',
+        prompt: t('Koppel aan elke batterij 2 onderwerpen'),
+        items: [
+          { id: 'bewegen', label: 'Bewegen' },
+          { id: 'voeding', label: 'Voeding' },
+          { id: 'intervisie', label: 'Intervisie' },
+          { id: 'hart', label: 'Je hart luchten' },
+        ],
+        targets: [
+          { id: 'fysiek', label: 'Fysiek' },
+          { id: 'sociaal', label: 'Sociaal-emotioneel' },
+        ],
+        matches: [
+          { itemId: 'bewegen', targetId: 'fysiek' },
+          { itemId: 'voeding', targetId: 'fysiek' },
+          { itemId: 'intervisie', targetId: 'sociaal' },
+          { itemId: 'hart', targetId: 'sociaal' },
+        ],
+        targetCapacity: 2,
+        shuffle: true,
+        scoring: { rule: 'per_item', correctPoints: 1, wrongPenalty: 1 },
+        review: t('De quizmaster legt het belang van een goede werk-privébalans uit.'),
+      },
+      // Ronde 4 vraag 1: labels onto bars, then a number per bar.
+      {
+        qType: 'number_range',
+        prompt: t('Hoeveel collega’s heb je bij benadering?'),
+        labels: [
+          { id: 'vrijwilligers', label: 'Vrijwilligers' },
+          { id: 'extern', label: 'Externe medewerkers' },
+        ],
+        fields: [
+          { id: 'bar-1', label: 'Staaf 1', min: 1970, max: 2170, correctLabelId: 'vrijwilligers' },
+          { id: 'bar-2', label: 'Staaf 2', min: 750, max: 850, correctLabelId: 'extern' },
+        ],
+        scoring: { rule: 'per_item', correctPoints: 1 },
+      },
+      // Ronde 5 vraag 5: picture cards in a random order.
+      {
+        qType: 'swipe',
+        prompt: t('Even appen, lekker snel. Geef aan wat wel en wat niet mag.'),
+        cards: [
+          { id: 'koffie', mediaId: 'media-card-koffie', mediaUrl: 'https://cdn.example/koffie.png', correctSide: 'right' },
+          { id: 'wachtwoord', mediaId: 'media-card-wachtwoord', correctSide: 'left' },
+        ],
+        sideLabels: { left: 'Mag niet', right: 'Mag wel' },
+        shuffle: true,
+        scoring: { rule: 'per_item', correctPoints: 1 },
+      },
+      // Ronde 1 vraag 6: a hit of several words, with another spelling.
+      {
+        qType: 'blurred_sentences',
+        prompt: t('Wat weet je over Jong COA?'),
+        sentences: [
+          {
+            id: 's3',
+            text: 'Bijna {{h1}} valt per jaar in die leeftijdscategorie.',
+            hits: [{ id: 'h1', word: 'de helft van alle medewerkers', accepted: ['helft', '50%'] }],
+          },
+        ],
+        scoring: { rule: 'per_item', correctPoints: 1 },
+      },
+      // Ronde 2 vraag 1: as many themes as the team can, points from the quizmaster.
+      {
+        qType: 'open_list',
+        prompt: t('Welke belangrijke thema’s komen langs in een RI&E?'),
+        fieldCount: 5,
+        openEnded: true,
+        scoring: { rule: 'manual', maxPoints: 25 },
+      },
+      // Ronde 4 vraag 5 step 2: one named field per abbreviation, bonus from the quizmaster.
+      {
+        qType: 'open_list',
+        prompt: t('Wat betekenen de afkortingen?'),
+        fieldCount: 2,
+        fields: [
+          { id: 'col', label: 'COL' },
+          { id: 'dol', label: 'DOL' },
+        ],
+        scoring: { rule: 'manual', maxPoints: 7 },
+      },
+      // Ronde 5 vraag 4: exactly 3 choices.
+      {
+        qType: 'multi_choice',
+        prompt: t('Wat zijn de belangrijkste consequenties van een datalek? Het zijn er drie.'),
+        options: [
+          { id: 'a', label: 'Een boete' },
+          { id: 'b', label: 'Mensensmokkelaars' },
+          { id: 'f', label: 'Traumatische ervaringen' },
+          { id: 'g', label: 'Seksuele geaardheid' },
+        ],
+        correctIds: ['b', 'f', 'g'],
+        exactChoices: 3,
+        scoring: { rule: 'per_item', correctPoints: 1 },
+      },
+      // Ronde 4 vraag 4: flags as pictures, random order.
+      {
+        qType: 'order',
+        prompt: t('Uit welke landen komen nu de meeste bewoners?'),
+        items: [
+          { id: 'eritrea', label: 'Eritrea', mediaId: 'media-flag-eritrea', mediaUrl: 'https://cdn.example/eritrea.png' },
+          { id: 'syrie', label: 'Syrië', mediaId: 'media-flag-syrie' },
+        ],
+        shuffle: true,
+        scoring: { rule: 'per_item', correctPoints: 1 },
+      },
+      // Ronde 2 vraag 2: open question, points from the jury.
+      {
+        qType: 'open_text',
+        prompt: t('Wat zou je in zo’n situatie doen?'),
+        scoring: { rule: 'manual', maxPoints: 3 },
+      },
+    ],
+  },
+}
+assert.strictEqual(okPhase(phaseKennisquizFinal), true)
+const parsedFinal = phaseSchema.parse(phaseKennisquizFinal)
+const parsedQuestions = (parsedFinal.content as { questions: { review?: unknown; qType: string }[] })
+  .questions
+// The review survives parsing (intersection keeps both halves).
+assert.ok(parsedQuestions[0]!.review, 'review is kept')
+assert.strictEqual(parsedQuestions[0]!.qType, 'matching')
+// Ronde 6: answers right after each question, and a wheel of 3 topics.
+const phaseRonde6: Phase = {
+  ...phaseKennisquizFinal,
+  id: 'phase-kennisquiz-ronde-6',
+  content: {
+    type: 'quiz',
+    mode: 'central_prompt',
+    revealAnswers: true,
+    reviewTiming: 'afterQuestion',
+    wheel: { labels: ['Migratiepact', 'Missie', 'Polarisatie'] },
+    questions: ['Migratiepact', 'Missie', 'Polarisatie'].map((topic) => ({
+      qType: 'open_text' as const,
+      prompt: t(topic),
+    })),
+  },
+}
+assert.strictEqual(okPhase(phaseRonde6), true)
+// Invalid: manual scoring needs maxPoints > 0, capacity must be positive.
+const bad = (patch: object) =>
+  okPhase({
+    ...phaseKennisquizFinal,
+    content: {
+      ...phaseKennisquizFinal.content,
+      questions: [{ ...(phaseKennisquizFinal.content as { questions: object[] }).questions[0], ...patch }],
+    },
+  })
+assert.strictEqual(bad({ scoring: { rule: 'manual', maxPoints: 0 } }), false)
+assert.strictEqual(bad({ targetCapacity: 0 }), false)
+assert.strictEqual(bad({ review: 'not blocks' }), false)
+console.log('OK final Kennisquiz (5.8.0): capacity, shuffle, bar labels, accepted hits, open lists, manual points, exact choices, picture order, review, wheel')
+
 // Prove a fully-resolved bundle (what tg-cms publishes and tg-runtime loads) also validates.
 publishedGameSchema.parse({
   id: 'v-1',

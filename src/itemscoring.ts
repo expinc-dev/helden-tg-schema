@@ -46,8 +46,18 @@ export const tieredScoringSchema = z.object({
 })
 export type TieredScoring = z.infer<typeof tieredScoringSchema>
 
+// - manual (5.8.0): the game does not grade the answer. The quizmaster gives each
+//   team 0..maxPoints by hand on the host screen (Kennisquiz: RI&E themes, the
+//   meanings of the abbreviations, open questions scored by the jury).
+export const manualScoringSchema = z.object({
+  rule: z.literal('manual'),
+  maxPoints: z.number().positive(),
+})
+export type ManualScoring = z.infer<typeof manualScoringSchema>
+
 export const itemScoringSchema = z.discriminatedUnion('rule', [
   perItemScoringSchema,
   tieredScoringSchema,
+  manualScoringSchema,
 ])
 export type ItemScoring = z.infer<typeof itemScoringSchema>
