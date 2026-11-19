@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { blockSchema } from '../blocks.js'
 
 const nonBlankString = z.string().refine((s) => s.trim().length > 0, { message: 'must not be blank' })
 
@@ -53,5 +54,9 @@ export const wordCloudContentSchema = z.object({
       message: 'tiers must be listed with strictly increasing minWords',
     })
     .optional(),
+  // 5.8.0: what the central screen shows for this word cloud in the review of the
+  // round (the Kennisquiz "AFTER THE ROUND" content), like Question.review. Host /
+  // central only: stripped from the player-safe bundle.
+  review: z.array(blockSchema).optional(),
 })
 export type WordCloudContent = z.infer<typeof wordCloudContentSchema>

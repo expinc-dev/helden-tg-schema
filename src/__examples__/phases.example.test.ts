@@ -15,7 +15,16 @@ import { summaryContentSchema } from '../content/summary.js'
 import { wordCloudContentSchema } from '../content/wordcloud.js'
 import { phaseSchema, type Phase } from '../phase.js'
 import { publishedGameSchema } from '../published.js'
-import { teamSchema, liveAggregatesSchema, wordCloudLiveSchema, quizHostLiveSchema, type Team } from '../rtdb.js'
+import {
+  teamSchema,
+  liveAggregatesSchema,
+  wordCloudLiveSchema,
+  quizHostLiveSchema,
+  roundReviewLiveSchema,
+  manualPointsLiveSchema,
+  wheelLiveSchema,
+  type Team,
+} from '../rtdb.js'
 import { teamResultSchema, type TeamResult } from '../results.js'
 
 // Fase 0 — Lobby / Pemanasan (idle, self_paced)
@@ -1068,6 +1077,34 @@ const bad = (patch: object) =>
 assert.strictEqual(bad({ scoring: { rule: 'manual', maxPoints: 0 } }), false)
 assert.strictEqual(bad({ targetCapacity: 0 }), false)
 assert.strictEqual(bad({ review: 'not blocks' }), false)
+// Live state (RTDB) of the review, the manual points and the wheel.
+assert.strictEqual(
+  roundReviewLiveSchema.safeParse({
+    blockId: 'ronde-2',
+    items: [
+      { phaseId: 'phase-kennisquiz-final', qId: 'phase-kennisquiz-final_q0' },
+      { phaseId: 'phase-cloud', qId: 'phase-cloud_q0' },
+    ],
+    current: 1,
+    showTeamAnswers: true,
+  }).success,
+  true,
+)
+assert.strictEqual(roundReviewLiveSchema.safeParse({ blockId: 'r', items: [], current: 0 }).success, false)
+assert.strictEqual(
+  manualPointsLiveSchema.safeParse({ 'phase-kennisquiz-final_q4': { 'team-a': 12, 'team-b': 0 } }).success,
+  true,
+)
+assert.strictEqual(manualPointsLiveSchema.safeParse({ q: { 'team-a': -1 } }).success, false)
+assert.strictEqual(wheelLiveSchema.safeParse({ spinningTo: 1, done: { '0': true } }).success, true)
+// A word cloud of the round can have review content too.
+assert.strictEqual(
+  okPhase({
+    ...phaseWordCloudBlur,
+    content: { ...phaseWordCloudBlur.content, review: t('Haal de blur weg en bespreek de woorden.') },
+  }),
+  true,
+)
 console.log('OK final Kennisquiz (5.8.0): capacity, shuffle, bar labels, accepted hits, open lists, manual points, exact choices, picture order, review, wheel')
 
 // Prove a fully-resolved bundle (what tg-cms publishes and tg-runtime loads) also validates.

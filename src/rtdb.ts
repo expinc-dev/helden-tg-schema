@@ -217,6 +217,53 @@ export const quizHostLiveSchema = z.object({
 })
 export type QuizHostLive = z.infer<typeof quizHostLiveSchema>
 
+// Review of a round — sessions/{sessionId}/roundReview (5.8.0, COA Kennisquiz,
+// quiz.reviewTiming 'afterRound'). Written ONLY by the host. While it exists the
+// tablets show a waiting screen, and the host clicks through the questions of the
+// round on the central screen. `items` is the ordered list the host clicks through,
+// built when the review starts: each entry is a phaseId plus the question key
+// (`${phaseId}_q${index}`, the qId the scores use; a word cloud phase has `_q0`).
+// The right answers and the `review` content come from the full bundle (host and
+// central only), never from this node. Removed (set to null) when the review ends.
+export const roundReviewItemSchema = z.object({
+  phaseId: z.string(),
+  qId: z.string(),
+})
+export const roundReviewLiveSchema = z.object({
+  // The round (phase.blockId, or the phase id of a lone phase) being reviewed.
+  blockId: z.string(),
+  items: z.array(roundReviewItemSchema).min(1),
+  // Index into `items` that central shows now.
+  current: z.number().int().nonnegative(),
+  // The host also shows the answers of the teams and their points for this item.
+  showTeamAnswers: z.boolean().optional(),
+  // The last step of the review: central shows the score of the round.
+  showRoundScore: z.boolean().optional(),
+})
+export type RoundReviewLive = z.infer<typeof roundReviewLiveSchema>
+
+// Points from the quizmaster — sessions/{sessionId}/manualPoints/{qId}/{keyId}
+// (5.8.0, item scoring rule 'manual'). Written ONLY by the host, 0..maxPoints of
+// the question. keyId is the teamId (team modes) or playerId (individual), same as
+// `teamScores` / `scores`. The flush folds them into questionScores like any other
+// question score, so they count in the block and total score.
+export const manualPointsLiveSchema = z.record(
+  z.string(), // qId
+  z.record(z.string(), z.number().nonnegative()), // keyId -> points
+)
+export type ManualPointsLive = z.infer<typeof manualPointsLiveSchema>
+
+// Wheel of fortune — sessions/{sessionId}/wheel/{phaseId} (5.8.0, quiz.wheel,
+// Ronde 6). Written ONLY by the host. The order is fixed in the bundle; this node
+// only says where the wheel is. `spinningTo` = the question index the wheel is
+// spinning to right now (central animates, then the question opens); `done` = the
+// question indexes already played (index as string -> true).
+export const wheelLiveSchema = z.object({
+  spinningTo: z.number().int().nonnegative().optional(),
+  done: z.record(z.string(), z.literal(true)).optional(),
+})
+export type WheelLive = z.infer<typeof wheelLiveSchema>
+
 // Team Mode node: /sessions/{sessionId}/teams/{teamId}. FLAT membership relation:
 // every device stays an equal players/{playerId}; this node just points at the
 // members. memberIds is the authoritative roster (owner included) and the anchor
