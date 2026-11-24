@@ -10,6 +10,7 @@
 // tsconfig.json excludes.
 /// <reference types="node" />
 import assert from 'node:assert'
+import { blockSchema } from '../blocks.js'
 import { normalQuizContentSchema } from '../content/normalquiz.js'
 import { summaryContentSchema } from '../content/summary.js'
 import { wordCloudContentSchema } from '../content/wordcloud.js'
@@ -1106,6 +1107,19 @@ assert.strictEqual(
   true,
 )
 console.log('OK final Kennisquiz (5.8.0): capacity, shuffle, bar labels, accepted hits, open lists, manual points, exact choices, picture order, review, wheel')
+
+// 5.9.0: an image block can be limited to some roles; without showOn it is for every role.
+assert.strictEqual(blockSchema.safeParse({ kind: 'image', mediaId: 'm' }).success, true)
+assert.strictEqual(
+  blockSchema.safeParse({ kind: 'image', mediaId: 'm', showOn: ['host', 'central'] }).success,
+  true,
+)
+assert.strictEqual(blockSchema.safeParse({ kind: 'image', mediaId: 'm', showOn: [] }).success, true)
+assert.strictEqual(
+  blockSchema.safeParse({ kind: 'image', mediaId: 'm', showOn: ['wall'] }).success,
+  false,
+)
+console.log('OK image showOn (5.9.0)')
 
 // Prove a fully-resolved bundle (what tg-cms publishes and tg-runtime loads) also validates.
 publishedGameSchema.parse({

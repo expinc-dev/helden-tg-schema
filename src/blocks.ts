@@ -245,6 +245,10 @@ export type SwipeCard = {
 export type BlurredHit = { id: string; word: string; accepted?: string[] }
 export type BlurredSentence = { id: string; text: string; hits: BlurredHit[] }
 
+// 5.9.0: the three runtime roles an image block can be limited to (Block.image.showOn).
+export const blockRoleSchema = z.enum(['host', 'central', 'player'])
+export type BlockRole = z.infer<typeof blockRoleSchema>
+
 export type Block =
   | { kind: 'text'; markdown: string }
   | {
@@ -258,6 +262,10 @@ export type Block =
       // small secondary note — both optional, both can be present at once.
       title?: string
       caption?: string
+      // 5.9.0: the roles that show this image. Absent = every role (host, central,
+      // player), so content written before 5.9.0 keeps showing everywhere. An empty
+      // list shows it nowhere. The CMS writes it only when the author unticks a role.
+      showOn?: BlockRole[]
     }
   | {
       kind: 'video'
@@ -497,6 +505,7 @@ export const blockSchema: z.ZodType<Block> = z.lazy(() =>
       url: z.string().optional(),
       title: z.string().optional(),
       caption: z.string().optional(),
+      showOn: z.array(blockRoleSchema).optional(),
     }),
     z.object({
       kind: z.literal('video'),
