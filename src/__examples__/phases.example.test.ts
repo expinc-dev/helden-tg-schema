@@ -10,12 +10,21 @@
 // tsconfig.json excludes.
 /// <reference types="node" />
 import assert from 'node:assert'
-import { blockSchema } from '../blocks.js'
+import { blockSchema, type Block } from '../blocks.js'
+import { codeInputContentSchema } from '../content/codeinput.js'
 import { normalQuizContentSchema } from '../content/normalquiz.js'
 import { summaryContentSchema } from '../content/summary.js'
 import { wordCloudContentSchema } from '../content/wordcloud.js'
 import { phaseSchema, type Phase } from '../phase.js'
-import { publishedGameSchema } from '../published.js'
+import { gameDraftSchema, publishedGameSchema } from '../published.js'
+import {
+  collectOptionRefs,
+  optionClaimsSchema,
+  optionIdsSchema,
+  teamChoiceSchema,
+  teamOptionSchema,
+} from '../teamchoice.js'
+import { teamChoice, teamChoiceGame } from './teamchoice.example.js'
 import {
   teamSchema,
   liveAggregatesSchema,
@@ -1140,5 +1149,286 @@ publishedGameSchema.parse({
   publishedBy: 'u-admin',
 })
 console.log('OK PublishedGame bundle assembled from all 8 walkthrough fases')
+
+// --- Team Choice (5.11.0) ----------------------------------------------------
+// 1. A game from before 5.11.0 (no teamChoice, no onlyForOptions) parses exactly as before.
+const oldBundleInput = {
+  id: 'v-old',
+  gameId: 'g-old',
+  schemaVersion: '5.10.0',
+  title: 'Old game',
+  phaseOrder: allPhases.map((p) => p.id),
+  flowMode: 'sequential',
+  phases: Object.fromEntries(allPhases.map((p) => [p.id, p])),
+  publishedAt: 1,
+  publishedBy: 'u-admin',
+}
+const oldBundle = publishedGameSchema.parse(oldBundleInput)
+assert.deepStrictEqual(oldBundle, oldBundleInput, 'an old bundle must come out of parse unchanged')
+assert.strictEqual('teamChoice' in oldBundle, false)
+assert.strictEqual(JSON.stringify(oldBundle).includes('onlyForOptions'), false)
+// The schema object keeps working for consumers that read it (CMS and pilot only parse).
+assert.strictEqual(typeof publishedGameSchema.shape.phases, 'object')
+assert.strictEqual(publishedGameSchema.shape.teamChoice.safeParse(undefined).success, true)
+// An old draft too, and a draft with options.
+const draftInput = {
+  id: 'g1',
+  orgId: 'o1',
+  title: 'Draft',
+  schemaVersion: '5.10.0',
+  phaseOrder: [],
+  defaults: { maxPlayers: 10, maxCentralScreens: 1 },
+  updatedAt: 1,
+}
+assert.strictEqual(gameDraftSchema.safeParse(draftInput).success, true)
+assert.strictEqual(gameDraftSchema.safeParse({ ...draftInput, teamChoice }).success, true)
+assert.strictEqual(gameDraftSchema.safeParse({ ...draftInput, teamChoice: { ...teamChoice, options: [] } }).success, false)
+
+// 2. The example game with options passes, and NOTHING is lost on the way through parse
+//    (every onlyForOptions, expectedByOption, showOn and mediaUrl is still there).
+assert.deepStrictEqual(publishedGameSchema.parse(teamChoiceGame), teamChoiceGame)
+const tcOk = (g: unknown) => publishedGameSchema.safeParse(g).success
+const tcPaths = (g: unknown): string[] => {
+  const r = publishedGameSchema.safeParse(g)
+  return r.success ? [] : r.error.issues.map((i) => i.path.join('.'))
+}
+const tcMessages = (g: unknown): string[] => {
+  const r = publishedGameSchema.safeParse(g)
+  return r.success ? [] : r.error.issues.map((i) => i.message)
+}
+const withChoice = (patch: object) => ({ ...teamChoiceGame, teamChoice: { ...teamChoice, ...patch } })
+const [optBridge, optTunnel] = teamChoice.options
+// options: duplicate ids, blank id or name, fewer than 2, missing rules.
+assert.strictEqual(tcOk(withChoice({ options: [optBridge, { ...optTunnel, id: optBridge.id }] })), false)
+// The duplicate is reported at the second option. (Tested on a game without references:
+// in the example game the removed id would also leave its references dangling.)
+assert.deepStrictEqual(
+  tcPaths({ ...oldBundleInput, teamChoice: { ...teamChoice, options: [optBridge, { ...optTunnel, id: optBridge.id }] } }),
+  ['teamChoice.options.1.id'],
+)
+assert.ok(tcPaths(withChoice({ options: [optBridge, { ...optTunnel, id: optBridge.id }] })).includes('teamChoice.options.1.id'))
+assert.strictEqual(tcOk(withChoice({ options: [optBridge, { ...optTunnel, id: '' }] })), false)
+assert.strictEqual(tcOk(withChoice({ options: [optBridge, { ...optTunnel, id: '   ' }] })), false)
+assert.strictEqual(tcOk(withChoice({ options: [optBridge, { ...optTunnel, name: '' }] })), false)
+assert.strictEqual(tcOk(withChoice({ options: [optBridge, { ...optTunnel, name: '   ' }] })), false)
+assert.strictEqual(tcOk(withChoice({ options: [optBridge] })), false)
+assert.strictEqual(tcOk(withChoice({ options: [] })), false)
+// The "at least 2 options" rule on its own (in a game the dangling references would also fail it).
+assert.strictEqual(teamChoiceSchema.safeParse({ ...teamChoice, options: [] }).success, false)
+assert.strictEqual(teamChoiceSchema.safeParse({ ...teamChoice, options: [optBridge] }).success, false)
+assert.strictEqual(teamChoiceSchema.safeParse({ ...teamChoice, options: [optBridge, optTunnel] }).success, true)
+assert.strictEqual(
+  teamChoiceSchema.safeParse({ ...teamChoice, options: [optBridge, { ...optTunnel, id: optBridge.id }] }).success,
+  false,
+)
+assert.strictEqual(teamChoiceSchema.safeParse({ options: teamChoice.options, allowSameOption: true }).success, false)
+assert.strictEqual(teamChoiceSchema.safeParse({ options: teamChoice.options, required: true }).success, false)
+assert.strictEqual(teamChoiceSchema.safeParse({ options: teamChoice.options, required: true, allowSameOption: true }).success, true)
+// Option ids are database keys: no . $ # [ ] / or control characters, at most 128 characters.
+for (const badId of ['a/b', 'a.b', 'a$b', 'a#b', 'a[b', 'a]b', 'a\nb', 'a\u0000b', 'a\u007fb', '../x', 'x'.repeat(129)]) {
+  assert.strictEqual(teamOptionSchema.safeParse({ id: badId, name: 'N' }).success, false, `id ${JSON.stringify(badId)}`)
+}
+for (const goodId of ['opt-1', 'opt_1', 'Optie 1', 'bedrijf-é', 'x'.repeat(128), '3f2c9c3e-7b1d-4a6e-9a4b-0c8f1d2e3a4b']) {
+  assert.strictEqual(teamOptionSchema.safeParse({ id: goodId, name: 'N' }).success, true, `id ${JSON.stringify(goodId)}`)
+}
+// mediaUrl is shown as an image source: http(s) only.
+for (const badUrl of ['javascript:alert(1)', 'data:image/svg+xml;base64,AAAA', 'file:///etc/passwd', '//example.com/a.png', '']) {
+  assert.strictEqual(teamOptionSchema.safeParse({ id: 'o', name: 'N', mediaUrl: badUrl }).success, false, `url ${badUrl}`)
+}
+assert.strictEqual(teamOptionSchema.safeParse({ id: 'o', name: 'N', mediaUrl: 'http://127.0.0.1:9199/a.png' }).success, true)
+assert.strictEqual(teamOptionSchema.safeParse({ id: 'o', name: 'N', mediaUrl: 'https://example.com/a.png' }).success, true)
+assert.strictEqual(teamOptionSchema.safeParse({ id: 'o', name: 'N' }).success, true)
+
+// 3. onlyForOptions survives parse on ALL 8 block kinds. The Record forces a sample for
+//    every kind: adding a block kind without a sample here is a compile error.
+const blockSamples: Record<Block['kind'], object> = {
+  text: { kind: 'text', markdown: 'x' },
+  image: { kind: 'image', mediaId: 'm', url: 'https://example.com/a.png', title: 't', caption: 'c', showOn: ['host'] },
+  video: { kind: 'video', mediaId: 'm', url: 'https://example.com/v.mp4', autoplay: true },
+  question: {
+    kind: 'question',
+    question: { qType: 'single_choice', prompt: [{ kind: 'text', markdown: 'q' }], options: [{ id: 'a', label: 'A' }], correctId: 'a' },
+  },
+  timer: { kind: 'timer', seconds: 30, direction: 'down' },
+  heading: { kind: 'heading', text: 'h' },
+  html: { kind: 'html', html: '<p>x</p>' },
+  button: { kind: 'button', variant: 'external-link', label: 'l', url: 'https://example.com', description: 'd' },
+}
+assert.strictEqual(Object.keys(blockSamples).length, 8)
+for (const [kind, sample] of Object.entries(blockSamples)) {
+  const limited = { ...sample, onlyForOptions: ['opt-bridge', 'opt-tunnel'] }
+  assert.deepStrictEqual(blockSchema.parse(limited), limited, `${kind}: onlyForOptions and the other fields must survive`)
+  assert.deepStrictEqual(blockSchema.parse(sample), sample, `${kind}: a block without onlyForOptions is unchanged`)
+  assert.strictEqual(blockSchema.safeParse({ ...sample, onlyForOptions: [] }).success, false, `${kind}: empty list`)
+  assert.strictEqual(blockSchema.safeParse({ ...sample, onlyForOptions: [''] }).success, false, `${kind}: blank id`)
+  assert.strictEqual(blockSchema.safeParse({ ...sample, onlyForOptions: 'opt-bridge' }).success, false, `${kind}: not a list`)
+}
+// Types: the field is on every kind and the kind still narrows.
+const typedBlock: Block = { kind: 'image', mediaId: 'm', showOn: ['host'], onlyForOptions: ['opt-bridge'] }
+const showOnOf = (b: Block) => (b.kind === 'image' ? b.showOn : undefined)
+assert.deepStrictEqual(showOnOf(typedBlock), ['host'])
+// A bad block still reports the place of the real problem (the intersection does not hide it).
+const badBlock = blockSchema.safeParse({ kind: 'text', markdown: 5, onlyForOptions: ['a'] })
+assert.strictEqual(badBlock.success, false)
+assert.deepStrictEqual(!badBlock.success && badBlock.error.issues.map((i) => i.path.join('.')), ['markdown'])
+const unknownKind = blockSchema.safeParse({ kind: 'nope' })
+assert.strictEqual(unknownKind.success, false)
+
+// The field also survives on phases and on blocks nested in a question prompt, a host
+// script and a presentation slide (all in the example game, compared in full above).
+const tcBriefing = publishedGameSchema.parse(teamChoiceGame).phases['phase-tc-briefing']
+assert.deepStrictEqual(tcBriefing.hostScript?.anchorScript?.[1], {
+  kind: 'text',
+  markdown: 'Bridge crew: mention the wind limit.',
+  onlyForOptions: ['opt-bridge'],
+})
+assert.deepStrictEqual(publishedGameSchema.parse(teamChoiceGame).phases['phase-tc-tunnel-only'].onlyForOptions, ['opt-tunnel'])
+
+// 4. An empty list is rejected on a phase too, as is a blank id.
+const tunnelOnly = teamChoiceGame.phases['phase-tc-tunnel-only']
+assert.strictEqual(okPhase(tunnelOnly), true)
+assert.strictEqual(okPhase({ ...tunnelOnly, onlyForOptions: [] }), false)
+assert.strictEqual(okPhase({ ...tunnelOnly, onlyForOptions: [' '] }), false)
+assert.strictEqual(okPhase({ ...tunnelOnly, onlyForOptions: 'opt-tunnel' }), false)
+assert.strictEqual(optionIdsSchema.safeParse([]).success, false)
+assert.strictEqual(optionIdsSchema.safeParse(['opt-1']).success, true)
+
+// 5. References to an option that does not exist are rejected, at the exact place.
+const withPhase = (id: string, patch: object) => ({
+  ...teamChoiceGame,
+  phases: { ...teamChoiceGame.phases, [id]: { ...teamChoiceGame.phases[id], ...patch } },
+})
+const microWith = (blocks: unknown[]) => ({
+  content: { type: 'microlearning', mode: 'sequential', steps: [{ id: 's1', title: 'S', blocks }] },
+})
+const ghost = { kind: 'text', markdown: 'x', onlyForOptions: ['opt-typo'] }
+// valid references pass (the example game uses them everywhere)
+assert.strictEqual(tcOk(teamChoiceGame), true)
+// phase
+assert.deepStrictEqual(tcPaths(withPhase('phase-tc-tunnel-only', { onlyForOptions: ['opt-typo'] })), [
+  'phases.phase-tc-tunnel-only.onlyForOptions.0',
+])
+// one wrong id among right ones: only the wrong one is reported
+assert.deepStrictEqual(tcPaths(withPhase('phase-tc-tunnel-only', { onlyForOptions: ['opt-tunnel', 'opt-typo'] })), [
+  'phases.phase-tc-tunnel-only.onlyForOptions.1',
+])
+assert.ok(tcMessages(withPhase('phase-tc-tunnel-only', { onlyForOptions: ['opt-typo'] }))[0].includes('opt-typo'))
+// block in a microlearning step
+assert.deepStrictEqual(tcPaths(withPhase('phase-tc-briefing', microWith([ghost]))), [
+  'phases.phase-tc-briefing.content.steps.0.blocks.0.onlyForOptions.0',
+])
+// block in a host script
+assert.deepStrictEqual(
+  tcPaths(withPhase('phase-tc-briefing', { hostScript: { anchorScript: [ghost] } })),
+  ['phases.phase-tc-briefing.hostScript.anchorScript.0.onlyForOptions.0'],
+)
+// block in a presentation slide
+assert.deepStrictEqual(
+  tcPaths(withPhase('phase-tc-presentation', { content: { type: 'presentation', controlledBy: 'host', slides: [{ id: 'sl', blocks: [ghost] }] } })),
+  ['phases.phase-tc-presentation.content.slides.0.blocks.0.onlyForOptions.0'],
+)
+// block in a question prompt, in a path_question task and in a question review
+const qBlock = (question: object) => ({ kind: 'question', question })
+const qPrompt = [{ kind: 'text', markdown: 'q' }]
+assert.deepStrictEqual(
+  tcPaths(withPhase('phase-tc-briefing', microWith([qBlock({ qType: 'open_text', prompt: [ghost] })]))),
+  ['phases.phase-tc-briefing.content.steps.0.blocks.0.question.prompt.0.onlyForOptions.0'],
+)
+assert.deepStrictEqual(
+  tcPaths(
+    withPhase(
+      'phase-tc-briefing',
+      microWith([
+        qBlock({
+          qType: 'path_question',
+          prompt: qPrompt,
+          cases: [
+            { id: 'c1', label: 'C1', task: [ghost] },
+            { id: 'c2', label: 'C2', task: qPrompt },
+          ],
+          unlockAfterCases: 1,
+        }),
+      ]),
+    ),
+  ),
+  ['phases.phase-tc-briefing.content.steps.0.blocks.0.question.cases.0.task.0.onlyForOptions.0'],
+)
+assert.deepStrictEqual(
+  tcPaths(withPhase('phase-tc-briefing', microWith([qBlock({ qType: 'open_text', prompt: qPrompt, review: [ghost] })]))),
+  ['phases.phase-tc-briefing.content.steps.0.blocks.0.question.review.0.onlyForOptions.0'],
+)
+// expectedByOption key
+const codeContent = teamChoiceGame.phases['phase-tc-code'].content
+assert.deepStrictEqual(
+  tcPaths(withPhase('phase-tc-code', { content: { ...codeContent, expectedByOption: { 'opt-typo': 'X' } } })),
+  ['phases.phase-tc-code.content.expectedByOption.opt-typo'],
+)
+// the same references are rejected when the game has no teamChoice at all
+const noChoice = { ...teamChoiceGame, teamChoice: undefined }
+assert.strictEqual(tcOk(noChoice), false)
+assert.ok(tcMessages(noChoice)[0].includes('no teamChoice'))
+// ... and fine again once the game has no references (an option list alone is allowed)
+const noRefs = { ...oldBundleInput, teamChoice }
+assert.strictEqual(tcOk(noRefs), true)
+// the check also reads blocks that are not in any phase the CMS knows by type
+assert.strictEqual(tcOk({ ...noRefs, teamChoice: undefined }), true)
+
+// 6. Team node and claim node.
+const teamBase = { ownerPlayerId: 'p1', memberIds: { p1: true }, createdAt: 1 }
+assert.strictEqual(teamSchema.safeParse(teamBase).success, true)
+assert.deepStrictEqual(teamSchema.parse({ ...teamBase, optionId: 'opt-bridge' }).optionId, 'opt-bridge')
+assert.strictEqual(teamSchema.safeParse({ ...teamBase, optionId: 'a/b' }).success, false)
+assert.strictEqual(teamSchema.safeParse({ ...teamBase, optionId: 5 }).success, false)
+assert.strictEqual(optionClaimsSchema.safeParse({ opt1: 'team1' }).success, true)
+assert.strictEqual(optionClaimsSchema.safeParse({}).success, true)
+assert.strictEqual(optionClaimsSchema.safeParse({ opt1: 5 }).success, false)
+assert.strictEqual(optionClaimsSchema.safeParse({ 'a/b': 'team1' }).success, false)
+
+// 7. Code input: an old one still passes, `expected` stays required, one per option works.
+const codeBase = { type: 'codeinput', expected: 'ABC', onSuccess: { advance: true } }
+assert.strictEqual(codeInputContentSchema.safeParse(codeBase).success, true)
+assert.strictEqual(codeInputContentSchema.safeParse({ ...codeBase, expectedByOption: { o1: 'X', o2: 'Y' } }).success, true)
+assert.strictEqual(codeInputContentSchema.safeParse({ type: 'codeinput', expectedByOption: { o1: 'X' }, onSuccess: { advance: true } }).success, false)
+assert.strictEqual(codeInputContentSchema.safeParse({ ...codeBase, expectedByOption: { o1: 5 } }).success, false)
+assert.strictEqual(codeInputContentSchema.safeParse({ ...codeBase, expectedByOption: { 'a/b': 'X' } }).success, false)
+// the player-safe form (answer keys stripped to '' or removed) is valid too
+assert.strictEqual(codeInputContentSchema.safeParse({ ...codeBase, expected: '', expectedByOption: { o1: '', o2: '' } }).success, true)
+assert.strictEqual(codeInputContentSchema.safeParse({ ...codeBase, expected: '' }).success, true)
+
+// 8. Unknown keys are still dropped, and a hostile key cannot pollute anything.
+assert.deepStrictEqual(blockSchema.parse({ kind: 'text', markdown: 'x', junk: 1 }), { kind: 'text', markdown: 'x' })
+assert.deepStrictEqual(blockSchema.parse({ kind: 'text', markdown: 'x', onlyForOptions: ['a'], junk: 1 }), {
+  kind: 'text',
+  markdown: 'x',
+  onlyForOptions: ['a'],
+})
+assert.strictEqual('junk' in teamChoiceSchema.parse({ ...teamChoice, junk: 1 }), false)
+assert.strictEqual('junk' in publishedGameSchema.parse({ ...teamChoiceGame, junk: 1 }), false)
+const hostile = codeInputContentSchema.parse({
+  ...codeBase,
+  expectedByOption: JSON.parse('{"__proto__":{"polluted":"yes"},"o1":"X"}'),
+})
+assert.deepStrictEqual(Object.keys(hostile.expectedByOption ?? {}), ['o1'])
+assert.strictEqual(({} as { polluted?: string }).polluted, undefined)
+
+// collectOptionRefs on its own: reads only, finds both shapes at any depth, ignores the rest.
+const refInput = {
+  a: [{ onlyForOptions: ['x', 'y'] }, { deeper: { expectedByOption: { z: 'code' } } }],
+  b: { onlyForOptions: 'not-a-list' },
+  c: { expectedByOption: ['not', 'an', 'object'] },
+  d: null,
+  e: 7,
+}
+const refInputBefore = JSON.stringify(refInput)
+assert.deepStrictEqual(collectOptionRefs(refInput), [
+  { optionId: 'x', path: ['a', 0, 'onlyForOptions', 0] },
+  { optionId: 'y', path: ['a', 0, 'onlyForOptions', 1] },
+  { optionId: 'z', path: ['a', 1, 'deeper', 'expectedByOption', 'z'] },
+])
+assert.strictEqual(JSON.stringify(refInput), refInputBefore, 'collectOptionRefs must not change its input')
+assert.deepStrictEqual(collectOptionRefs(null), [])
+assert.deepStrictEqual(collectOptionRefs('text'), [])
+assert.deepStrictEqual(collectOptionRefs({}), [])
+console.log('OK Team Choice (5.11.0): options, onlyForOptions on all 8 block kinds + phase, expectedByOption, references, old games unchanged')
 
 console.log(`All 8 walkthrough fases (${allPhases.length} phase objects) + bundle passed validation.`)

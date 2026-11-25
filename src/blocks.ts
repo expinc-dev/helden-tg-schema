@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { itemScoringSchema, type ItemScoring } from './itemscoring.js'
+import { optionIdsSchema } from './teamchoice.js'
 
 // Block ↔ Question is mutually recursive (a question's prompt is Block[],
 // and a Block can be a question). We declare the TS types first, then annotate
@@ -249,7 +250,19 @@ export type BlurredSentence = { id: string; text: string; hits: BlurredHit[] }
 export const blockRoleSchema = z.enum(['host', 'central', 'player'])
 export type BlockRole = z.infer<typeof blockRoleSchema>
 
-export type Block =
+// 5.11.0: fields every block kind may carry (same pattern as QuestionCommon above).
+// `onlyForOptions` = the Team Choice option ids this block is shown for. Absent = shown
+// for every option (and for a team that has no option); a list of 1 or more ids limits it
+// to teams that picked one of them; an empty list is rejected. A team without an option
+// only sees blocks WITHOUT this field. Hiding is the runtime's job and applies where the
+// block is rendered: the block stays in the bundle, so it is not a secret (use
+// `expectedByOption` for answer keys). The CMS should write the field only when the author
+// limits the block, so content written before 5.11.0 is untouched.
+export type BlockCommon = { onlyForOptions?: string[] }
+
+export type Block = BlockBody & BlockCommon
+
+export type BlockBody =
   | { kind: 'text'; markdown: string }
   | {
       kind: 'image'
@@ -497,6 +510,10 @@ const questionBodySchema: z.ZodType<QuestionBody> = z.lazy(() =>
 )
 
 export const blockSchema: z.ZodType<Block> = z.lazy(() =>
+  z.intersection(blockBodySchema, z.object({ onlyForOptions: optionIdsSchema.optional() })),
+)
+
+const blockBodySchema: z.ZodType<BlockBody> = z.lazy(() =>
   z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('text'), markdown: z.string() }),
     z.object({

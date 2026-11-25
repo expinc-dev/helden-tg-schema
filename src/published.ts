@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { phaseSchema } from './phase.js'
+import { collectOptionRefs, teamChoiceSchema } from './teamchoice.js'
 
 // Game-level flow. Per-phase syncMode + teamMode already exist; flowMode says
 // how the host progresses BETWEEN phases:
@@ -44,6 +45,8 @@ export const gameDraftSchema = z.object({
   }),
   updatedAt: timestampSchema,
   latestPublishedVersionId: z.string().optional(),
+  // 5.11.0: Team Choice options of the game (see teamchoice.ts). Absent = no options.
+  teamChoice: teamChoiceSchema.optional(),
 })
 export type GameDraft = z.infer<typeof gameDraftSchema>
 
@@ -57,7 +60,28 @@ export const publishedGameSchema = z.object({
   phaseOrder: z.array(z.string()),
   flowMode: flowModeSchema.default('sequential'),
   phases: z.record(z.string(), phaseSchema),
+  // 5.11.0: Team Choice options of the game (see teamchoice.ts). Absent = no options and
+  // the game plays exactly as before.
+  teamChoice: teamChoiceSchema.optional(),
   publishedAt: timestampSchema,
   publishedBy: z.string(),
+}).superRefine((game, ctx) => {
+  // 5.11.0: every option id used in a phase or block (`onlyForOptions`) or as a key of a
+  // code input's `expectedByOption` must be an option of this game. A typo would otherwise
+  // hide content from every team without any error. A game that uses none of these fields
+  // is not checked, so bundles from before 5.11.0 parse exactly as before.
+  const refs = collectOptionRefs(game.phases)
+  if (refs.length === 0) return
+  const known = new Set((game.teamChoice?.options ?? []).map((option) => option.id))
+  for (const ref of refs) {
+    if (known.has(ref.optionId)) continue
+    ctx.addIssue({
+      code: 'custom',
+      path: ['phases', ...ref.path],
+      message: game.teamChoice
+        ? `unknown option id "${ref.optionId}": it is not one of teamChoice.options`
+        : `option id "${ref.optionId}" is used but the game has no teamChoice`,
+    })
+  }
 })
 export type PublishedGame = z.infer<typeof publishedGameSchema>

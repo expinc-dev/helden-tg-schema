@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { optionIdSchema } from './teamchoice.js'
 
 // Shape of /sessions/{sessionId}/* in RTDB. See BLUEPRINT_schema §5.
 
@@ -284,6 +285,10 @@ export const teamSchema = z.object({
   ownerPlayerId: z.string(),
   memberIds: z.record(z.string(), z.literal(true)), // includes the owner
   teamName: z.string().optional(),
+  // 5.11.0 (Team Choice): the option this team picked, an id of PublishedGame.teamChoice.
+  // Written by the team leader before the first phase. Absent = the team has no option
+  // (it has not picked yet, or the game has no Team Choice).
+  optionId: optionIdSchema.optional(),
   createdAt: z.number(),
   codeinput: z.record(z.string(), codeInputLiveSchema).optional(),
   // Keyed by phaseId, same reasoning as `codeinput` above — a team can play

@@ -16,6 +16,7 @@ import { unlockingContentSchema } from './content/unlocking.js'
 import { videoContentSchema } from './content/video.js'
 import { wordCloudContentSchema } from './content/wordcloud.js'
 import { worldBuildingContentSchema } from './content/worldbuilding.js'
+import { optionIdsSchema } from './teamchoice.js'
 
 export const phaseTypeSchema = z.enum([
   'microlearning',
@@ -164,6 +165,13 @@ export const phaseSchema = z.object({
     .string()
     .refine((s) => s.trim().length > 0, { message: 'must not be blank' })
     .optional(),
+  // 5.11.0: Team Choice option ids this phase is limited to ("only for these options").
+  // Absent = the phase is for every option. Teams without an option only get phases
+  // WITHOUT this field. Same semantics as Block.onlyForOptions (see blocks.ts); every id
+  // must be one of PublishedGame.teamChoice.options (checked in publishedGameSchema).
+  // The phase pointer is shared by the whole session, so what the other teams see while
+  // one option's phase runs is a runtime decision.
+  onlyForOptions: optionIdsSchema.optional(),
 }).superRefine((phase, ctx) => {
   // Rules that only apply to a word cloud phase. Scoped on purpose: `type` vs
   // `content.type` is NOT cross-checked for the other phase types, so bundles
