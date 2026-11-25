@@ -239,6 +239,9 @@ export const roundReviewLiveSchema = z.object({
   showTeamAnswers: z.boolean().optional(),
   // The last step of the review: central shows the score of the round.
   showRoundScore: z.boolean().optional(),
+  // 5.10.0: how central shows the teams' answers. Absent = automatic (compact from about 6
+  // teams); 'compact' = one short card per team; 'full' = every answer in full. Set by the host.
+  teamsView: z.enum(['compact', 'full']).optional(),
 })
 export type RoundReviewLive = z.infer<typeof roundReviewLiveSchema>
 

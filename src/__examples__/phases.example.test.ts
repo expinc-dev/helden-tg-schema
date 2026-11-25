@@ -1121,6 +1121,13 @@ assert.strictEqual(
 )
 console.log('OK image showOn (5.9.0)')
 
+// 5.10.0: the host can choose how central shows the teams' answers in the review.
+const rr = { blockId: 'r', items: [{ phaseId: 'p', qId: 'p_q0' }], current: 0 }
+assert.strictEqual(roundReviewLiveSchema.safeParse({ ...rr, teamsView: 'compact' }).success, true)
+assert.strictEqual(roundReviewLiveSchema.safeParse({ ...rr, teamsView: 'full' }).success, true)
+assert.strictEqual(roundReviewLiveSchema.safeParse({ ...rr, teamsView: 'tiny' }).success, false)
+console.log('OK round review teamsView (5.10.0)')
+
 // Prove a fully-resolved bundle (what tg-cms publishes and tg-runtime loads) also validates.
 publishedGameSchema.parse({
   id: 'v-1',
